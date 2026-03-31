@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  wired-ai-chat:
+    build: .
+    image: wired-ai:latest
+    container_name: wired-ai-chat
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - PORT=8090
+      - APP_PASSWORD=sezam
+      - REQUIRE_AUTH=false
+      - LLM_HOST=http://192.168.15.15:1234
+    volumes:
+      # Pliki montowane bezpośrednio z NASa — zmiana pliku = restart kontenera (nie rebuild)
+      - /volume1/docker/wiredAI/public:/app/public
+      - /volume1/docker/wiredAI/server.js:/app/server.js

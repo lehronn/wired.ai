@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Wired AI Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <!-- Overlay for Password Auth -->
+    <div id="login-overlay" class="overlay">
+        <div class="glass-panel login-box">
+            <h1>Wired AI</h1>
+            <p>Podaj hasło dostępowe</p>
+            <form id="login-form">
+                <input type="password" id="password-input" placeholder="Hasło..." required autocomplete="off">
+                <button type="submit" class="btn">Wejdź</button>
+            </form>
+            <p id="login-error" class="error-text hidden">Błędne hasło!</p>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div id="app-container" class="hidden">
+        
+        <header class="glass-panel app-header">
+            <div class="header-left">
+                <h2 id="app-title">Wired AI</h2>
+                <div class="status-indicator">
+                    <span id="ai-status-dot" class="status-dot unknown"></span>
+                    <span id="ai-status-text">Sprawdzanie stanu...</span>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="lang-switch">
+                    <div id="lang-pl" class="lang-btn active">PL</div>
+                    <div id="lang-en" class="lang-btn">EN</div>
+                </div>
+                
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button id="system-prompt-btn" class="btn btn-secondary icon-only" title="System Prompt">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path></svg>
+                    </button>
+                    <select id="model-selector" class="glass-select model-select">
+                        <option value="" id="opt-select-model">Wybierz model...</option>
+                    </select>
+                    <button id="refresh-models-btn" class="btn btn-secondary icon-only" title="Odśwież listę modeli">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48V96a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h31.4L186.08,74.73a79.93,79.93,0,1,0,1.67,109.46,8,8,0,0,1,11.41,11.22A95.94,95.94,0,1,1,223.58,85.22L224,85.64V48a8,8,0,0,1,0,0Z"></path></svg>
+                    </button>
+                </div>
+
+                <select id="theme-selector" class="glass-select theme-select">
+                    <option value="auto" id="opt-theme-auto">Motyw: Auto</option>
+                    <option value="dark" id="opt-theme-dark">Ciemny</option>
+                    <option value="light" id="opt-theme-light">Jasny</option>
+                    <option value="solarized-dark" id="opt-theme-solarized-dark">Solarized Ciemny</option>
+                    <option value="solarized-light" id="opt-theme-solarized-light">Solarized Jasny</option>
+                </select>
+
+                <button id="export-btn" class="btn btn-secondary icon-only" title="Eksportuj konwersację (JSON)">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,112v96a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V112a16,16,0,0,1,16-16h32a8,8,0,0,1,0,16H56v96H200V112H168a8,8,0,0,1,0-16h32A16,16,0,0,1,216,112ZM122.34,26.34a8,8,0,0,1,11.32,0l48,48a8,8,0,0,1-11.32,11.32L136,51.31V152a8,8,0,0,1-16,0V51.31L85.66,85.66A8,8,0,0,1,74.34,74.34Z"></path></svg>
+                </button>
+                <button id="clear-btn" class="btn btn-danger icon-only" title="Wyczyść historię">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <main id="chat-container">
+            <div id="messages"></div>
+        </main>
+
+        <footer class="app-footer">
+            <div class="input-area">
+                <textarea id="message-input" placeholder="Wpisz wiadomość..." rows="1"></textarea>
+                <button id="send-btn" class="btn send-btn-circle">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M231.87,114l-168-95.89A16,16,0,0,0,40.92,37.34L71.55,128,40.92,218.67A16,16,0,0,0,56,240a16.15,16.15,0,0,0,7.93-2.1l168-95.89a16,16,0,0,0,0-27.92Zm-15.83,14L48,223.92,76.4,136H136a8,8,0,0,0,0-16H76.4L48,32.08,216.05,128Z"></path></svg>
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <svg style="display:none;">
+        <symbol id="icon-copy" viewBox="0 0 256 256">
+            <path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V96a8,8,0,0,0-8-8H96V48H208Z"></path>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 256 256">
+            <path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"></path>
+        </symbol>
+    </svg>
+
+    <!-- Modal for System Prompt -->
+    <div id="system-prompt-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2 id="modal-title">System Prompt</h2>
+                <button id="close-modal" class="btn btn-secondary icon-only" style="padding:4px;">&times;</button>
+            </div>
+            <textarea id="system-prompt-input" placeholder="Configure how the AI should behave..."></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button id="reset-prompt-btn" class="btn btn-secondary">Reset</button>
+                <button id="save-prompt-btn" class="btn">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+
+    <!-- Modal for System Prompt -->
+    <div id="system-prompt-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2 id="modal-title">System Prompt</h2>
+                <button id="close-modal" class="btn btn-secondary icon-only" style="padding:4px;">&times;</button>
+            </div>
+            <textarea id="system-prompt-input" placeholder="Wpisz instrukcje dla AI..."></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button id="reset-prompt-btn" class="btn btn-secondary" id="btn-reset">Reset</button>
+                <button id="save-prompt-btn" class="btn" id="btn-save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
