@@ -159,20 +159,8 @@ app.get('/api/info', (req, res) => {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const libs = {
-        pdf: !!pdf,
-        docx: !!mammoth,
-        xlsx: !!xlsx
-    };
-
-    // Also check resolve as fallback
-    try { if(!libs.pdf) { require.resolve('pdf-parse'); libs.pdf = 'reload_required'; } } catch(e){}
-    try { if(!libs.docx) { require.resolve('mammoth'); libs.docx = 'reload_required'; } } catch(e){}
-    try { if(!libs.xlsx) { require.resolve('xlsx'); libs.xlsx = 'reload_required'; } } catch(e){}
-
     res.json({
         status: 'online',
-        libraries: libs,
         node_version: process.version,
         platform: process.platform,
         uptime: process.uptime()

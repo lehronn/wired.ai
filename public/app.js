@@ -49,10 +49,7 @@ const translations = {
         info_l_data: "XLSX, CSV, JSON, XML",
         info_v_limit: "Łącznie do 20MB",
         info_v_count: "Do 10 plików",
-        info_footer: "Twoje dane są przetwarzane lokalnie na Synology. Szyfrowane logowanie chroni prywatność Twojej instancji.",
-        status_ready: "Gotowy",
-        status_installing: "Instalacja w tle...",
-        status_error_lib: "Błąd bibliotek"
+        info_footer: "Twoje dane są przetwarzane lokalnie na Synology. Szyfrowane logowanie chroni prywatność Twojej instancji."
     },
     en: {
         status_checking: "Checking...",
@@ -90,10 +87,7 @@ const translations = {
         info_l_data: "XLSX, CSV, JSON, XML",
         info_v_limit: "Total up to 20MB",
         info_v_count: "Up to 10 files",
-        info_footer: "Your data is processed locally on Synology. Encrypted login protects your instance privacy.",
-        status_ready: "Ready",
-        status_installing: "Installing in background...",
-        status_error_lib: "Library Error"
+        info_footer: "Your data is processed locally on Synology. Encrypted login protects your instance privacy."
     }
 };
 
@@ -889,32 +883,5 @@ function setLang(lang) {
 
     // Re-render if empty to update welcome message language
     if (chatHistory.length === 0) renderHistory();
-    
-    // Initial Sys Status Check
-    updateSysInfo();
 }
 
-async function updateSysInfo() {
-    try {
-        const res = await fetch('/api/info', {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        if (!res.ok) return;
-        
-        const data = await res.json();
-        const t = translations[currentLang];
-        
-        // Update version string with health info
-        const statusEl = document.getElementById('info-project-status');
-        if (statusEl) {
-            const allReady = data.libraries.pdf && data.libraries.xlsx && data.libraries.docx;
-            if (allReady === true) {
-                statusEl.innerHTML = `<span class="text-success pulse-mini">●</span> ${t.status_ready} (v1.0.1)`;
-            } else {
-                statusEl.innerHTML = `<span class="text-warning pulse-mini">●</span> ${t.status_installing}`;
-            }
-        }
-    } catch (e) {
-        console.warn('[SysInfo]: Could not sync library status.');
-    }
-}
