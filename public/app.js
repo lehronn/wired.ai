@@ -77,6 +77,7 @@ const aiStatusText = document.getElementById('ai-status-text');
 const aiStatusContainer = document.getElementById('ai-status');
 
 const promptModal = new bootstrap.Modal(document.getElementById('prompt-modal'));
+const infoModal = new bootstrap.Modal(document.getElementById('info-modal'));
 const promptInput = document.getElementById('system-prompt-input');
 const savePromptBtn = document.getElementById('save-prompt-btn');
 const resetPromptBtn = document.getElementById('reset-prompt-btn');
@@ -398,9 +399,10 @@ async function sendMessage() {
     }
 
     const message = rawMessage;
-    const currentImgs = rawImages;
+    const currentImgs = rawImages.filter(i => i.type === 'image' || !i.type); // backward comp
+    const currentDocs = rawImages.filter(i => i.type === 'document');
     
-    if ((!message && currentImgs.length === 0)) return;
+    if ((!message && rawImages.length === 0)) return;
     if (!selectedModel) {
         alert(translations[currentLang].error_model);
         return;
@@ -410,13 +412,16 @@ async function sendMessage() {
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
-    // Build multimodal content if images exist
-    let apiContent = message;
-    let uiContentForHistory = message;
+    // Integrate document text as context
+    let docContext = currentDocs.map(d => `[PLIK: ${d.filename}]\n${d.text}\n---`).join('\n');
+    let finalPrompt = docContext ? `${docContext}\n\n${message}` : message;
+
+    let apiContent = finalPrompt;
+    let uiContentForHistory = finalPrompt;
     
     if (currentImgs.length > 0) {
         apiContent = [
-            { type: "text", text: message },
+            { type: "text", text: finalPrompt },
             ...currentImgs.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
         ];
         uiContentForHistory = apiContent; 
@@ -594,8 +599,9 @@ function setupEventListeners() {
         messageInput.style.height = messageInput.scrollHeight + 'px';
     };
 
-    // System Prompt Modal
+    // Modals
     document.getElementById('system-prompt-btn').onclick = () => promptModal.show();
+    document.getElementById('info-btn').onclick = () => infoModal.show();
     savePromptBtn.onclick = () => {
         systemPrompt = promptInput.value;
         localStorage.setItem('wired-ai-system-prompt', systemPrompt);
@@ -643,15 +649,37 @@ function handleImageSelect(e) {
     if (!files.length) return;
 
     files.forEach(file => {
-        if (!file.type.startsWith('image/')) return;
+        const id = Date.now() + Math.random().toString(16).slice(2);
         
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const id = Date.now() + Math.random().toString(16).slice(2);
-            currentImages.push({ id, base64: event.target.result });
-            renderPreviews();
-        };
-        reader.readAsDataURL(file);
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentImages.push({ id, type: 'image', base64: event.target.result });
+                renderPreviews();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Document handling
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64 = event.target.result;
+                try {
+                    const res = await fetch('/api/extract-text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                        body: JSON.stringify({ base64, filename: file.name, mimeType: file.type })
+                    });
+                    const data = await res.json();
+                    if (data.text) {
+                        currentImages.push({ id, type: 'document', text: data.text, filename: file.name, mimeType: file.type });
+                        renderPreviews();
+                    } else {
+                        console.error('[Doc Error]:', data.error);
+                    }
+                } catch (err) { console.error('[Fetch Error]:', err); }
+            };
+            reader.readAsDataURL(file);
+        }
     });
 }
 
@@ -666,12 +694,29 @@ function renderPreviews() {
     currentImages.forEach((img, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'preview-image-wrapper';
-        wrapper.innerHTML = `
-            <img src="${img.base64}" class="preview-thumbnail shadow-sm">
-            <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
-                <i class="bi bi-x"></i>
-            </button>
-        `;
+        
+        if (img.type === 'document') {
+            const isPdf = img.mimeType === 'application/pdf';
+            const isDocx = img.filename.endsWith('.docx');
+            const iconClass = isPdf ? 'bi-file-pdf text-danger' : (isDocx ? 'bi-file-word text-primary' : 'bi-file-earmark-text text-info');
+            
+            wrapper.innerHTML = `
+                <div class="preview-thumbnail doc-card d-flex flex-column align-items-center justify-content-center p-2">
+                    <i class="bi ${iconClass} fs-3"></i>
+                    <small class="doc-name-small mt-1 text-truncate" style="max-width: 70px;">${img.filename}</small>
+                </div>
+                <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+        } else {
+            wrapper.innerHTML = `
+                <img src="${img.base64}" class="preview-thumbnail shadow-sm">
+                <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+        }
         imagePreviewContainer.appendChild(wrapper);
     });
 }

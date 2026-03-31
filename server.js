@@ -3,6 +3,8 @@ const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const http = require('http');
+const pdf = require('pdf-parse');
+const mammoth = require('mammoth');
 
 const app = express();
 const PORT = process.env.PORT || 8090;
@@ -67,6 +69,34 @@ app.use('/api/v1', (req, res, next) => {
 
 // JSON Parsing (ONLY AFTER PROXY to avoid consuming body stream)
 app.use(express.json({ limit: '20mb' }));
+
+// --- Document Extraction Endpoint ---
+app.post('/api/extract-text', async (req, res) => {
+    try {
+        const { base64, filename, mimeType } = req.body;
+        if (!base64) return res.status(400).json({ error: 'Brak danych pliku' });
+        
+        const buffer = Buffer.from(base64.split(',')[1], 'base64');
+        let extractedText = '';
+
+        if (mimeType === 'application/pdf') {
+            const data = await pdf(buffer);
+            extractedText = data.text;
+        } else if (filename.endsWith('.docx')) {
+            const result = await mammoth.extractRawText({ buffer: buffer });
+            extractedText = result.value;
+        } else if (mimeType.startsWith('text/') || filename.endsWith('.md') || filename.endsWith('.txt')) {
+            extractedText = buffer.toString('utf8');
+        } else {
+            return res.status(400).json({ error: 'Nieobsługiwany format dokumentu' });
+        }
+
+        res.json({ text: extractedText, filename: filename });
+    } catch (err) {
+        console.error('[Doc Extraction Error]:', err);
+        res.status(500).json({ error: 'Błąd podczas odczytu dokumentu: ' + err.message });
+    }
+});
 
 app.post('/auth/verify', (req, res) => {
     if (!REQUIRE_AUTH || !APP_PASSWORD) {

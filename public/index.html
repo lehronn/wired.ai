@@ -43,6 +43,9 @@
                 </a>
                 
                 <div class="d-flex align-items-center gap-3 ms-auto">
+                    <button class="btn btn-sm btn-glass-icon" id="info-btn" title="Informacje">
+                        <i class="bi bi-info-circle"></i>
+                    </button>
                     <button class="btn btn-sm btn-glass-icon position-relative" id="system-prompt-btn" title="Ustawienia">
                         <i class="bi bi-gear-fill"></i>
                         <!-- Dot for settings notification if needed -->
@@ -86,10 +89,10 @@
                 </div>
 
                 <div class="input-wrapper glass-panel p-2 d-flex align-items-end gap-2 shadow-lg" id="input-container">
-                    <input type="file" id="image-upload" accept="image/*" multiple class="d-none">
+                    <input type="file" id="image-upload" accept="image/*,.pdf,.docx,.txt,.md" multiple class="d-none">
                     <textarea id="message-input" class="form-control border-0 bg-transparent" placeholder="Zadaj pytanie..." rows="1"></textarea>
                     <button id="upload-btn" class="btn btn-link text-muted p-1 mb-1">
-                        <i class="bi bi-images fs-5"></i>
+                        <i class="bi bi-paperclip fs-5"></i>
                     </button>
                     <button id="send-btn" class="btn btn-primary rounded-circle send-btn">
                         <i class="bi bi-send-fill"></i>
@@ -138,6 +141,67 @@
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary px-4" id="reset-prompt-btn">Reset</button>
                     <button type="button" class="btn btn-primary px-4" id="save-prompt-btn">Zapisz</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="modal fade" id="info-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i><span>O systemie Wired AI</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="info-group mb-4 text-center">
+                        <small class="text-muted text-uppercase fw-bold opacity-50" style="letter-spacing: 1px;">Status Projektu: Branch Two (Alpha)</small>
+                    </div>
+                    <div class="info-group mb-4">
+                        <h6 class="text-primary-emphasis mb-3 fw-bold small text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-gear-fill me-1"></i> Możliwości i Limity</h6>
+                        <div class="table-responsive rounded-3 overflow-hidden border border-secondary-subtle">
+                            <table class="table table-dark table-hover mb-0 small-table">
+                                <thead class="table-light opacity-75">
+                                    <tr>
+                                        <th class="ps-3">Funkcja</th>
+                                        <th>Status</th>
+                                        <th class="pe-3">Limit / Info</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="ps-3">Multi-Vision</td>
+                                        <td><span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">Działa</span></td>
+                                        <td class="pe-3">PNG, JPG, WEBP</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Kolejkowanie</td>
+                                        <td><span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">Działa</span></td>
+                                        <td>Płynne serie pytań</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pojemność</td>
+                                        <td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50">Limit</span></td>
+                                        <td>Max 20MB per upload</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Historia</td>
+                                        <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-50">System</span></td>
+                                        <td>Smart Cleanup (Base64)</td>
+                                    </tr>
+                                    <tr class="opacity-50">
+                                        <td>Dokumenty</td>
+                                        <td><span class="badge bg-secondary bg-opacity-25">W drodze</span></td>
+                                        <td>PDF, DOCX (Branch 2)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="info-group text-center px-4">
+                        <p class="small text-muted mb-0">Twoje dane są przetwarzane lokalnie na Synology. Szyfrowane logowanie chroni prywatność Twojej instancji.</p>
+                    </div>
                 </div>
             </div>
         </div>
