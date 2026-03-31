@@ -375,15 +375,32 @@ async function sendMessage() {
     let fullResponse = '';
 
     try {
+        // Smart History: Merge consecutive roles to avoid API errors (especially with Vision/Reasoning models)
+        const massagedMessages = [{ role: 'system', content: systemPrompt }];
+        
+        chatHistory.forEach(msg => {
+            const last = massagedMessages[massagedMessages.length - 1];
+            if (last && last.role === msg.role) {
+                // Merge content
+                if (typeof last.content === 'string' && typeof msg.content === 'string') {
+                    last.content += "\n" + msg.content;
+                } else {
+                    // Handle multimodal merging (arrays)
+                    const lastArr = Array.isArray(last.content) ? last.content : [{ type: 'text', text: last.content }];
+                    const msgArr = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
+                    last.content = [...lastArr, ...msgArr];
+                }
+            } else {
+                massagedMessages.push({ ...msg });
+            }
+        });
+
         const bodyData = {
             model: selectedModel,
             stream: true,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...chatHistory
-            ]
+            messages: massagedMessages
         };
-        console.log('[API Request Content]:', bodyData);
+        console.log('[API Request Content (Massaged)]:', bodyData);
 
         const response = await fetch('/api/v1/chat/completions', {
             method: 'POST',
