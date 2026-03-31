@@ -14,7 +14,6 @@ app.use(cors());
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json({ limit: '20mb' }));
 
 // Simple Authorization Middleware
 const authMiddleware = (req, res, next) => {
@@ -30,6 +29,44 @@ const authMiddleware = (req, res, next) => {
 
 // Protect API routes
 app.use('/api', authMiddleware);
+
+// Proxy logic (MUST BE BEFORE express.json() for streaming)
+app.use('/api/v1', (req, res, next) => {
+    const proxy = createProxyMiddleware({
+        target: LLM_API_URL,
+        changeOrigin: true,
+        pathRewrite: (path, req) => {
+            const original = req.originalUrl.split('?')[0];
+            // Dla modeli chcemy natywną odpowiedź LM Studio (z loaded_instances)
+            if (original === '/api/v1/models') {
+                console.log(`[Proxy] NATIVE: ${original} -> ${original}`);
+                return original;
+            }
+            // Dla czatu i pozostałych, używamy standardowego /v1
+            const finalPath = original.replace('/api/v1', '/v1');
+            console.log(`[Proxy] OPENAI: ${original} -> ${finalPath}`);
+            return finalPath;
+        },
+        on: {
+            proxyReq: (proxyReq, req, res) => {
+                console.log(`[Proxy] Sending ${req.method} to ${LLM_API_URL}${proxyReq.path}`);
+                proxyReq.removeHeader('authorization');
+            },
+            error: (err, req, res) => {
+                console.error('[Proxy Error]:', err.message);
+                if (!res.headersSent) {
+                    res.status(502).json({ error: 'Błąd połączenia z LM Studio lub przekroczenie czasu oczekiwania.' });
+                }
+            }
+        },
+        timeout: 600000,      // 10 minut na odpowiedź
+        proxyTimeout: 600000 // 10 minut na połączenie
+    });
+    proxy(req, res, next);
+});
+
+// JSON Parsing (ONLY AFTER PROXY to avoid consuming body stream)
+app.use(express.json({ limit: '20mb' }));
 
 app.post('/auth/verify', (req, res) => {
     if (!REQUIRE_AUTH || !APP_PASSWORD) {
@@ -80,40 +117,7 @@ app.get('/api/status', (req, res) => {
 });
 
 
-// Proxy logic
-app.use('/api/v1', (req, res, next) => {
-    const proxy = createProxyMiddleware({
-        target: LLM_API_URL,
-        changeOrigin: true,
-        pathRewrite: (path, req) => {
-            const original = req.originalUrl.split('?')[0];
-            // Dla modeli chcemy natywną odpowiedź LM Studio (z loaded_instances)
-            if (original === '/api/v1/models') {
-                console.log(`[Proxy] NATIVE: ${original} -> ${original}`);
-                return original;
-            }
-            // Dla czatu i pozostałych, używamy standardowego /v1
-            const finalPath = original.replace('/api/v1', '/v1');
-            console.log(`[Proxy] OPENAI: ${original} -> ${finalPath}`);
-            return finalPath;
-        },
-        on: {
-            proxyReq: (proxyReq, req, res) => {
-                console.log(`[Proxy] Sending ${req.method} to ${LLM_API_URL}${proxyReq.path}`);
-                proxyReq.removeHeader('authorization');
-            },
-            error: (err, req, res) => {
-                console.error('[Proxy Error]:', err.message);
-                if (!res.headersSent) {
-                    res.status(502).json({ error: 'Błąd połączenia z LM Studio lub przekroczenie czasu oczekiwania.' });
-                }
-            }
-        },
-        timeout: 600000,      // 10 minut na odpowiedź
-        proxyTimeout: 600000 // 10 minut na połączenie
-    });
-    proxy(req, res, next);
-});
+// Endpoint to check status of LLM backend
 
 
 app.listen(PORT, () => {

@@ -10,6 +10,7 @@ let systemPrompt = localStorage.getItem('wired-ai-system-prompt') || 'You are a 
 let currentLang = localStorage.getItem('wired-ai-lang') || 'pl';
 let isStreaming = false;
 let abortController = null;
+let messageQueue = [];
 
 const translations = {
     pl: {
@@ -334,15 +335,29 @@ function toggleOfflineMode(isOffline) {
     }
 }
 async function sendMessage() {
+    const rawMessage = messageInput.value.trim();
+    const rawImages = [...currentImages];
+    const selectedModel = modelSelector.value;
+
     if (isStreaming) {
-        stopGeneration();
+        if (!rawMessage && rawImages.length === 0) return;
+        // Queue the message
+        messageQueue.push({ message: rawMessage, images: rawImages });
+        appendMessageUI('user', rawImages.length > 0 ? 
+            [{type:'text', text: rawMessage}, ...rawImages.map(img => ({type:'image_url', image_url: {url: img.base64}}))] : 
+            rawMessage
+        );
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        clearAllImages();
+        console.log('[Queue]: Added message to queue. Remaining:', messageQueue.length);
         return;
     }
 
-    const message = messageInput.value.trim();
-    const selectedModel = modelSelector.value;
+    const message = rawMessage;
+    const currentImgs = rawImages;
     
-    if ((!message && currentImages.length === 0)) return;
+    if ((!message && currentImgs.length === 0)) return;
     if (!selectedModel) {
         alert(translations[currentLang].error_model);
         return;
@@ -356,19 +371,19 @@ async function sendMessage() {
     let apiContent = message;
     let uiContentForHistory = message;
     
-    if (currentImages.length > 0) {
+    if (currentImgs.length > 0) {
         apiContent = [
             { type: "text", text: message },
-            ...currentImages.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
+            ...currentImgs.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
         ];
-        uiContentForHistory = apiContent; // Store the same structure for UI rendering
+        uiContentForHistory = apiContent; 
     }
 
     chatHistory.push({ role: 'user', content: apiContent });
     saveHistory();
     appendMessageUI('user', uiContentForHistory);
     
-    // Clear Vision State
+    // Clear Vision State for the message just sent
     clearAllImages();
 
     const startTime = performance.now();
@@ -466,6 +481,15 @@ async function sendMessage() {
         }
     } finally {
         setStreamingMode(false);
+        // Process next in queue
+        if (messageQueue.length > 0) {
+            const next = messageQueue.shift();
+            messageInput.value = next.message;
+            // Temporarily restore images to global for sendMessage to pick up
+            currentImages = next.images;
+            console.log('[Queue]: Processing next message...');
+            sendMessage();
+        }
     }
 }
 
