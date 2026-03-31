@@ -293,6 +293,19 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
+.doc-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px dashed var(--glass-border) !important;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+}
+.doc-name-small {
+    font-size: 0.65rem;
+    max-width: 65px;
+    line-height: 1.1;
+    color: var(--text-muted);
+}
 .remove-image-pill {
     position: absolute;
     top: -5px;
@@ -332,6 +345,24 @@ body {
     flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 10px;
+}
+
+/* Info Modal & Tables */
+.small-table {
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+.small-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--primary);
+    border-bottom: 1px solid var(--glass-border);
+}
+.small-table td {
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Queue Visuals */

@@ -33,9 +33,23 @@ const translations = {
         clear_confirm: "Wyczyścić historię czatu?",
         login_title: "Wprowadź hasło",
         login_btn: "Wejdź",
-        error_auth: "Błędne hasło",
-        error_model: "Wybierz model przed wysłaniem wiadomości.",
-        error_offline: "Usługa aktualnie nie działa — brak połączenia z serwerem AI."
+        error_offline: "Usługa aktualnie nie działa — brak połączenia z serwerem AI.",
+        welcome_msg: "Witaj w **Wired AI: One**! 🤖✨\n\nJestem Twoim zaawansowanym asystentem na Synology. Potrafię:\n- 📝 **Analizować tekst** i odpowiadać na pytania.\n- 📄 **Czytać dokumenty** (PDF, Word, TXT, MD).\n- 🖼️ **Oglądać wiele obrazów** jednocześnie (Multi-Vision).\n\nW czym mogę Ci dzisiaj pomóc? 🚀",
+        info_title: "Specyfikacja Wired AI",
+        info_project_status: "Wersja Systemu: 1.0.1 (Branch Two)",
+        info_capabilities: "Specyfikacja Techniczna",
+        info_th_func: "Typ Pliku",
+        info_th_status: "Formaty",
+        info_th_limit: "Limit / Info",
+        info_f_vision: "Obrazy",
+        info_f_docs: "Dokumenty",
+        info_f_data: "Arkusze i Dane",
+        info_l_images: "JPG, PNG, WEBP",
+        info_l_docs: "PDF, DOCX, TXT, MD",
+        info_l_data: "XLSX, CSV, JSON, XML",
+        info_v_limit: "Łącznie do 20MB",
+        info_v_count: "Do 10 plików",
+        info_footer: "Twoje dane są przetwarzane lokalnie na Synology. Szyfrowane logowanie chroni prywatność Twojej instancji."
     },
     en: {
         status_checking: "Checking...",
@@ -57,9 +71,23 @@ const translations = {
         clear_confirm: "Clear chat history?",
         login_title: "Enter password",
         login_btn: "Enter",
-        error_auth: "Invalid password",
-        error_model: "Please select a model before sending.",
-        error_offline: "Service currently unavailable — no connection to AI server."
+        error_offline: "Service currently unavailable — no connection to AI server.",
+        welcome_msg: "Welcome to **Wired AI: One**! 🤖✨\n\nI am your advanced assistant on Synology. I can:\n- 📝 **Analyze text** and answer questions.\n- 📄 **Read documents** (PDF, Word, TXT, MD).\n- 🖼️ **See multiple images** at once (Multi-Vision).\n\nHow can I help you today? 🚀",
+        info_title: "Wired AI Specification",
+        info_project_status: "System Version: 1.0.1 (Branch Two)",
+        info_capabilities: "Technical Specification",
+        info_th_func: "File Type",
+        info_th_status: "Formats",
+        info_th_limit: "Limit / Info",
+        info_f_vision: "Images",
+        info_f_docs: "Documents",
+        info_f_data: "Sheets & Data",
+        info_l_images: "JPG, PNG, WEBP",
+        info_l_docs: "PDF, DOCX, TXT, MD",
+        info_l_data: "XLSX, CSV, JSON, XML",
+        info_v_limit: "Total up to 20MB",
+        info_v_count: "Up to 10 files",
+        info_footer: "Your data is processed locally on Synology. Encrypted login protects your instance privacy."
     }
 };
 
@@ -77,6 +105,7 @@ const aiStatusText = document.getElementById('ai-status-text');
 const aiStatusContainer = document.getElementById('ai-status');
 
 const promptModal = new bootstrap.Modal(document.getElementById('prompt-modal'));
+const infoModal = new bootstrap.Modal(document.getElementById('info-modal'));
 const promptInput = document.getElementById('system-prompt-input');
 const savePromptBtn = document.getElementById('save-prompt-btn');
 const resetPromptBtn = document.getElementById('reset-prompt-btn');
@@ -197,6 +226,12 @@ function clearHistory() {
 // --- UI Rendering ---
 function renderHistory() {
     messagesWrapper.innerHTML = '';
+    if (chatHistory.length === 0) {
+        // Show welcome assistant message if history is empty
+        const welcomeText = translations[currentLang].welcome_msg;
+        appendMessageUI('assistant', welcomeText);
+        return;
+    }
     chatHistory.forEach(msg => appendMessageUI(msg.role, msg.content, msg.stats));
 }
 
@@ -398,9 +433,10 @@ async function sendMessage() {
     }
 
     const message = rawMessage;
-    const currentImgs = rawImages;
+    const currentImgs = rawImages.filter(i => i.type === 'image' || !i.type); // backward comp
+    const currentDocs = rawImages.filter(i => i.type === 'document');
     
-    if ((!message && currentImgs.length === 0)) return;
+    if ((!message && rawImages.length === 0)) return;
     if (!selectedModel) {
         alert(translations[currentLang].error_model);
         return;
@@ -410,13 +446,16 @@ async function sendMessage() {
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
-    // Build multimodal content if images exist
-    let apiContent = message;
-    let uiContentForHistory = message;
+    // Integrate document text as context
+    let docContext = currentDocs.map(d => `[PLIK: ${d.filename}]\n${d.text}\n---`).join('\n');
+    let finalPrompt = docContext ? `${docContext}\n\n${message}` : message;
+
+    let apiContent = finalPrompt;
+    let uiContentForHistory = finalPrompt;
     
     if (currentImgs.length > 0) {
         apiContent = [
-            { type: "text", text: message },
+            { type: "text", text: finalPrompt },
             ...currentImgs.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
         ];
         uiContentForHistory = apiContent; 
@@ -594,8 +633,9 @@ function setupEventListeners() {
         messageInput.style.height = messageInput.scrollHeight + 'px';
     };
 
-    // System Prompt Modal
+    // Modals
     document.getElementById('system-prompt-btn').onclick = () => promptModal.show();
+    document.getElementById('info-btn').onclick = () => infoModal.show();
     savePromptBtn.onclick = () => {
         systemPrompt = promptInput.value;
         localStorage.setItem('wired-ai-system-prompt', systemPrompt);
@@ -643,15 +683,37 @@ function handleImageSelect(e) {
     if (!files.length) return;
 
     files.forEach(file => {
-        if (!file.type.startsWith('image/')) return;
+        const id = Date.now() + Math.random().toString(16).slice(2);
         
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const id = Date.now() + Math.random().toString(16).slice(2);
-            currentImages.push({ id, base64: event.target.result });
-            renderPreviews();
-        };
-        reader.readAsDataURL(file);
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentImages.push({ id, type: 'image', base64: event.target.result });
+                renderPreviews();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Document handling
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64 = event.target.result;
+                try {
+                    const res = await fetch('/api/extract-text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                        body: JSON.stringify({ base64, filename: file.name, mimeType: file.type })
+                    });
+                    const data = await res.json();
+                    if (data.text) {
+                        currentImages.push({ id, type: 'document', text: data.text, filename: file.name, mimeType: file.type });
+                        renderPreviews();
+                    } else {
+                        console.error('[Doc Error]:', data.error);
+                    }
+                } catch (err) { console.error('[Fetch Error]:', err); }
+            };
+            reader.readAsDataURL(file);
+        }
     });
 }
 
@@ -666,12 +728,38 @@ function renderPreviews() {
     currentImages.forEach((img, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'preview-image-wrapper';
-        wrapper.innerHTML = `
-            <img src="${img.base64}" class="preview-thumbnail shadow-sm">
-            <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
-                <i class="bi bi-x"></i>
-            </button>
-        `;
+        
+        if (img.type === 'document') {
+            const isPdf = img.mimeType === 'application/pdf';
+            const isDocx = img.filename.endsWith('.docx');
+            const isSheet = img.filename.endsWith('.xlsx') || img.filename.endsWith('.xls') || img.filename.endsWith('.csv');
+            const isJson = img.filename.endsWith('.json');
+            const isXml = img.filename.endsWith('.xml');
+
+            let iconClass = 'bi-file-earmark-text text-info';
+            if (isPdf) iconClass = 'bi-file-pdf text-danger';
+            else if (isDocx) iconClass = 'bi-file-word text-primary';
+            else if (isSheet) iconClass = 'bi-file-earmark-spreadsheet text-success';
+            else if (isJson) iconClass = 'bi-filetype-json text-warning';
+            else if (isXml) iconClass = 'bi-filetype-xml text-secondary';
+            
+            wrapper.innerHTML = `
+                <div class="preview-thumbnail doc-card d-flex flex-column align-items-center justify-content-center p-2">
+                    <i class="bi ${iconClass} fs-3"></i>
+                    <small class="doc-name-small mt-1 text-truncate" style="max-width: 70px;">${img.filename}</small>
+                </div>
+                <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+        } else {
+            wrapper.innerHTML = `
+                <img src="${img.base64}" class="preview-thumbnail shadow-sm">
+                <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+        }
         imagePreviewContainer.appendChild(wrapper);
     });
 }
@@ -729,7 +817,25 @@ function setLang(lang) {
     document.querySelector('[data-theme="dark"]').textContent = t.theme_dark;
     document.querySelector('[data-theme="light"]').textContent = t.theme_light;
     document.getElementById('message-input').placeholder = t.input_placeholder;
-    document.getElementById('login-msg').textContent = t.login_title;
-    document.querySelectorAll('#login-form button').forEach(b => b.textContent = t.login_btn);
-    document.getElementById('login-error').textContent = t.error_auth;
+    document.getElementById('info-modal-title').innerHTML = `<i class="bi bi-info-circle me-2 text-primary"></i><span>${t.info_title}</span>`;
+    document.getElementById('info-project-status').textContent = t.info_project_status;
+    document.getElementById('info-capabilities-title').innerHTML = `<i class="bi bi-gear-fill me-1"></i> ${t.info_capabilities}`;
+    document.getElementById('info-th-func').textContent = t.info_th_func;
+    document.getElementById('info-th-status').textContent = t.info_th_status;
+    document.getElementById('info-th-limit').textContent = t.info_th_limit;
+    
+    document.getElementById('info-f-vision').textContent = t.info_f_vision;
+    document.getElementById('info-f-docs').textContent = t.info_f_docs;
+    document.getElementById('info-f-data').textContent = t.info_f_data;
+
+    document.getElementById('info-l-images').textContent = t.info_l_images;
+    document.getElementById('info-l-docs').textContent = t.info_l_docs;
+    document.getElementById('info-l-data').textContent = t.info_l_data;
+
+    document.querySelectorAll('[id^="info-v-limit"]').forEach(el => el.textContent = t.info_v_limit);
+    document.querySelectorAll('[id^="info-v-count"]').forEach(el => el.textContent = t.info_v_count);
+    document.getElementById('info-footer-text').textContent = t.info_footer;
+
+    // Re-render if empty to update welcome message language
+    if (chatHistory.length === 0) renderHistory();
 }

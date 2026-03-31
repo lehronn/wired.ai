@@ -4,6 +4,16 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const http = require('http');
 
+// Resilient Imports for Branch Two
+let pdf, mammoth, xlsx;
+try {
+    pdf = require('pdf-parse');
+    mammoth = require('mammoth');
+    xlsx = require('xlsx');
+} catch (e) {
+    console.error('[Startup Warning]: Document/Data libraries (pdf-parse/mammoth/xlsx) missing. Some features disabled.');
+}
+
 const app = express();
 const PORT = process.env.PORT || 8090;
 const LLM_API_URL = process.env.LLM_HOST || 'http://192.168.15.15:1234'; 
@@ -67,6 +77,41 @@ app.use('/api/v1', (req, res, next) => {
 
 // JSON Parsing (ONLY AFTER PROXY to avoid consuming body stream)
 app.use(express.json({ limit: '20mb' }));
+
+// --- Document Extraction Endpoint ---
+app.post('/api/extract-text', async (req, res) => {
+    try {
+        const { base64, filename, mimeType } = req.body;
+        if (!base64) return res.status(400).json({ error: 'Brak danych pliku' });
+        
+        const buffer = Buffer.from(base64.split(',')[1], 'base64');
+        let extractedText = '';
+
+        if (mimeType === 'application/pdf') {
+            if (!pdf) throw new Error('Biblioteka pdf-parse jest niedostępna.');
+            const data = await pdf(buffer);
+            extractedText = data.text;
+        } else if (filename.endsWith('.docx')) {
+            if (!mammoth) throw new Error('Biblioteka mammoth jest niedostępna.');
+            const result = await mammoth.extractRawText({ buffer: buffer });
+            extractedText = result.value;
+        } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls') || filename.endsWith('.csv')) {
+            if (!xlsx) throw new Error('Biblioteka xlsx (Excel) jest niedostępna.');
+            const workbook = xlsx.read(buffer, { type: 'buffer' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]]; // Read first sheet
+            extractedText = xlsx.utils.sheet_to_csv(sheet);
+        } else if (mimeType.startsWith('text/') || filename.endsWith('.md') || filename.endsWith('.txt') || filename.endsWith('.json') || filename.endsWith('.xml')) {
+            extractedText = buffer.toString('utf8');
+        } else {
+            return res.status(400).json({ error: 'Nieobsługiwany format dokumentu' });
+        }
+
+        res.json({ text: extractedText, filename: filename });
+    } catch (err) {
+        console.error('[Doc Extraction Error]:', err);
+        res.status(500).json({ error: 'Błąd podczas odczytu dokumentu: ' + err.message });
+    }
+});
 
 app.post('/auth/verify', (req, res) => {
     if (!REQUIRE_AUTH || !APP_PASSWORD) {
