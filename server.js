@@ -3,8 +3,15 @@ const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const http = require('http');
-const pdf = require('pdf-parse');
-const mammoth = require('mammoth');
+
+// Resilient Imports for Branch Two
+let pdf, mammoth;
+try {
+    pdf = require('pdf-parse');
+    mammoth = require('mammoth');
+} catch (e) {
+    console.error('[Startup Warning]: Document libraries (pdf-parse/mammoth) missing. Document features disabled.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 8090;
@@ -80,9 +87,11 @@ app.post('/api/extract-text', async (req, res) => {
         let extractedText = '';
 
         if (mimeType === 'application/pdf') {
+            if (!pdf) throw new Error('Biblioteka pdf-parse jest niedostępna.');
             const data = await pdf(buffer);
             extractedText = data.text;
         } else if (filename.endsWith('.docx')) {
+            if (!mammoth) throw new Error('Biblioteka mammoth jest niedostępna.');
             const result = await mammoth.extractRawText({ buffer: buffer });
             extractedText = result.value;
         } else if (mimeType.startsWith('text/') || filename.endsWith('.md') || filename.endsWith('.txt')) {
