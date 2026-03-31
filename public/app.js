@@ -233,12 +233,11 @@ function renderHistory() {
         return;
     }
     chatHistory.forEach(msg => {
-        const displayContent = msg.originalText || msg.content;
-        appendMessageUI(msg.role, displayContent, msg.stats, false, msg.attachments);
+        appendMessageUI(msg.role, msg.content, msg.stats, false, msg.attachments, msg.originalText);
     });
 }
 
-function appendMessageUI(role, content, stats = null, isQueued = false, attachments = []) {
+function appendMessageUI(role, content, stats = null, isQueued = false, attachments = [], originalText = null) {
     const bubble = document.createElement('div');
     bubble.className = `message-bubble ${role === 'user' ? 'message-user' : 'message-ai'}`;
     if (isQueued) bubble.classList.add('message-queued');
@@ -256,11 +255,12 @@ function appendMessageUI(role, content, stats = null, isQueued = false, attachme
         bubble.appendChild(qStat);
     }
 
-    // Render Images if any
+    // Render Images if any (check either content or originalContent if Vision API is used)
     if (role === 'user' && Array.isArray(content)) {
         const images = content.filter(c => c.type === 'image_url');
-        const textObj = content.find(c => c.type === 'text');
-        
+        const textFromContent = content.find(c => c.type === 'text')?.text || '';
+        const displayText = originalText || textFromContent;
+
         if (images.length > 0) {
             const grid = document.createElement('div');
             grid.className = 'message-images-grid';
@@ -268,13 +268,18 @@ function appendMessageUI(role, content, stats = null, isQueued = false, attachme
                 const imgEl = document.createElement('img');
                 imgEl.src = img.image_url.url;
                 imgEl.className = 'message-image shadow-sm';
+                // Smaller size requested
+                imgEl.style.maxHeight = '200px'; 
+                imgEl.style.width = 'auto';
                 grid.appendChild(imgEl);
             });
             bubble.insertBefore(grid, contentDiv);
         }
-        contentDiv.innerHTML = textObj ? textObj.text.replace(/\n/g, '<br>') : '';
+        contentDiv.innerHTML = displayText.replace(/\n/g, '<br>');
     } else {
-        contentDiv.innerHTML = role === 'assistant' ? marked.parse(content) : content.replace(/\n/g, '<br>');
+        // Direct string content
+        const displayText = originalText || content;
+        contentDiv.innerHTML = role === 'assistant' ? marked.parse(displayText) : displayText.replace(/\n/g, '<br>');
     }
 
     // Render Document Chips if any
