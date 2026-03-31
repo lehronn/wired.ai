@@ -414,23 +414,17 @@ function toggleOfflineMode(isOffline) {
     }
 }
 async function sendMessage() {
+    // If streaming, handle STOP action
+    if (isStreaming) {
+        stopGeneration();
+        return;
+    }
+
     const rawMessage = messageInput.value.trim();
     const rawImages = [...currentImages];
     const selectedModel = modelSelector.value;
 
-    if (isStreaming) {
-        if (!rawMessage && rawImages.length === 0) return;
-        // Queue the message with UI reference
-        const uiOutput = appendMessageUI('user', rawImages.length > 0 ? 
-            [{type:'text', text: rawMessage}, ...rawImages.map(img => ({type:'image_url', image_url: {url: img.base64}}))] : 
-            rawMessage, null, true
-        );
-        messageQueue.push({ message: rawMessage, images: rawImages, uiRef: uiOutput.bubble });
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
-        clearAllImages();
-        return;
-    }
+    if (!rawMessage && rawImages.length === 0) return;
 
     const message = rawMessage;
     const currentImgs = rawImages.filter(i => i.type === 'image' || !i.type); // backward comp
