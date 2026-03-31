@@ -8,8 +8,8 @@ const http = require('http');
 let pdf_parse, mammoth, xlsx;
 try {
     const pdfImport = require('pdf-parse');
-    // Handle ESM or CJS exports (some environments return an object with .default)
-    pdf_parse = typeof pdfImport === 'function' ? pdfImport : (pdfImport.default || pdfImport);
+    // Handle ESM, CJS or specific property exports like PDFParse
+    pdf_parse = typeof pdfImport === 'function' ? pdfImport : (pdfImport.PDFParse || pdfImport.default || pdfImport);
     mammoth = require('mammoth');
     xlsx = require('xlsx');
 } catch (e) {
