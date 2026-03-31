@@ -4,21 +4,16 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const http = require('http');
 
-// Resilient Imports for Branch Two
-let pdf, mammoth, xlsx;
-try {
-    pdf = require('pdf-parse');
-    mammoth = require('mammoth');
-    xlsx = require('xlsx');
-} catch (e) {
-    console.error('[Startup Warning]: Document/Data libraries (pdf-parse/mammoth/xlsx) missing. Some features disabled.');
-}
+// Static Standard Imports
+const pdf = require('pdf-parse');
+const mammoth = require('mammoth');
+const xlsx = require('xlsx');
 
 const app = express();
 const PORT = process.env.PORT || 8090;
 const LLM_API_URL = process.env.LLM_HOST || 'http://192.168.15.15:1234'; 
 const APP_PASSWORD = process.env.APP_PASSWORD || 'sezam';
-const REQUIRE_AUTH = process.env.REQUIRE_AUTH !== 'false'; // Domyślnie true, chyba że jawnio powiesz 'false'
+const REQUIRE_AUTH = process.env.REQUIRE_AUTH !== 'false'; 
 
 app.use(cors());
 
@@ -47,35 +42,29 @@ app.use('/api/v1', (req, res, next) => {
         changeOrigin: true,
         pathRewrite: (path, req) => {
             const original = req.originalUrl.split('?')[0];
-            // Dla modeli chcemy natywną odpowiedź LM Studio (z loaded_instances)
             if (original === '/api/v1/models') {
-                console.log(`[Proxy] NATIVE: ${original} -> ${original}`);
                 return original;
             }
-            // Dla czatu i pozostałych, używamy standardowego /v1
             const finalPath = original.replace('/api/v1', '/v1');
-            console.log(`[Proxy] OPENAI: ${original} -> ${finalPath}`);
             return finalPath;
         },
         on: {
             proxyReq: (proxyReq, req, res) => {
-                console.log(`[Proxy] Sending ${req.method} to ${LLM_API_URL}${proxyReq.path}`);
                 proxyReq.removeHeader('authorization');
             },
             error: (err, req, res) => {
                 console.error('[Proxy Error]:', err.message);
                 if (!res.headersSent) {
-                    res.status(502).json({ error: 'Błąd połączenia z LM Studio lub przekroczenie czasu oczekiwania.' });
+                    res.status(502).json({ error: 'Błąd połączenia z backendem LLM.' });
                 }
             }
         },
-        timeout: 600000,      // 10 minut na odpowiedź
-        proxyTimeout: 600000 // 10 minut na połączenie
+        timeout: 600000,
+        proxyTimeout: 600000
     });
     proxy(req, res, next);
 });
 
-// JSON Parsing (ONLY AFTER PROXY to avoid consuming body stream)
 app.use(express.json({ limit: '20mb' }));
 
 // --- Document Extraction Endpoint ---
@@ -87,17 +76,13 @@ app.post('/api/extract-text', async (req, res) => {
         const buffer = Buffer.from(base64.split(',')[1], 'base64');
         let extractedText = '';
 
-        // Lazy Loading Libraries for NAS Resilience
         if (mimeType === 'application/pdf') {
-            try { pdf = require('pdf-parse'); } catch(e) { throw new Error('Biblioteka pdf-parse jest niedostępna (instalacja trwa).'); }
             const data = await pdf(buffer);
             extractedText = data.text;
         } else if (filename.endsWith('.docx')) {
-            try { mammoth = require('mammoth'); } catch(e) { throw new Error('Biblioteka mammoth jest niedostępna (instalacja trwa).'); }
             const result = await mammoth.extractRawText({ buffer: buffer });
             extractedText = result.value;
         } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls') || filename.endsWith('.csv')) {
-            try { xlsx = require('xlsx'); } catch(e) { throw new Error('Biblioteka xlsx (Excel) jest niedostępna (instalacja trwa).'); }
             const workbook = xlsx.read(buffer, { type: 'buffer' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]]; 
             extractedText = xlsx.utils.sheet_to_csv(sheet);

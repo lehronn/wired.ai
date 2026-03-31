@@ -1,11 +1,6 @@
 #!/bin/sh
-echo "[Auto-Healer]: TRYB RATUNKOWY (RESCUE MODE) STARTUJĘ..."
+# Wired AI: Standard Entrypoint
+echo "[Wired AI]: Startuję usługę... 🚀"
 
-# Sprawdź czy node_modules w ogóle istnieje
-if [ ! -d "node_modules" ]; then
-    echo "[Auto-Healer]: OSTRZEŻENIE! Brak folderu node_modules."
-fi
-
-# Uruchom właściwy proces bezpośrednio, bez zbędnych blokad
-echo "[Auto-Healer]: Uruchamiam aplikację..."
+# Uruchom właściwy proces (node server.js)
 exec "$@"
