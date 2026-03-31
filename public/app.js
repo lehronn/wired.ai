@@ -232,10 +232,13 @@ function renderHistory() {
         appendMessageUI('assistant', welcomeText);
         return;
     }
-    chatHistory.forEach(msg => appendMessageUI(msg.role, msg.content, msg.stats));
+    chatHistory.forEach(msg => {
+        const displayContent = msg.originalText || msg.content;
+        appendMessageUI(msg.role, displayContent, msg.stats, false, msg.attachments);
+    });
 }
 
-function appendMessageUI(role, content, stats = null, isQueued = false) {
+function appendMessageUI(role, content, stats = null, isQueued = false, attachments = []) {
     const bubble = document.createElement('div');
     bubble.className = `message-bubble ${role === 'user' ? 'message-user' : 'message-ai'}`;
     if (isQueued) bubble.classList.add('message-queued');
@@ -272,6 +275,41 @@ function appendMessageUI(role, content, stats = null, isQueued = false) {
         contentDiv.innerHTML = textObj ? textObj.text.replace(/\n/g, '<br>') : '';
     } else {
         contentDiv.innerHTML = role === 'assistant' ? marked.parse(content) : content.replace(/\n/g, '<br>');
+    }
+
+    // Render Document Chips if any
+    if (attachments && attachments.length > 0) {
+        const attachGrid = document.createElement('div');
+        attachGrid.className = 'message-attachments';
+        
+        attachments.forEach(doc => {
+            const isPdf = doc.mimeType === 'application/pdf';
+            const isDocx = doc.filename.endsWith('.docx');
+            const isSheet = doc.filename.endsWith('.xlsx') || doc.filename.endsWith('.xls') || doc.filename.endsWith('.csv');
+            const isJson = doc.filename.endsWith('.json');
+            
+            let iconClass = 'bi-file-earmark-text text-info';
+            let ext = 'TEXT';
+            
+            if (isPdf) { iconClass = 'bi-file-pdf text-danger'; ext = 'PDF'; }
+            else if (isDocx) { iconClass = 'bi-file-word text-primary'; ext = 'DOCX'; }
+            else if (isSheet) { iconClass = 'bi-file-earmark-spreadsheet text-success'; ext = 'DATA'; }
+            else if (isJson) { iconClass = 'bi-filetype-json text-warning'; ext = 'JSON'; }
+
+            const chip = document.createElement('div');
+            chip.className = 'doc-attachment-chip shadow-sm';
+            chip.innerHTML = `
+                <i class="bi ${iconClass}"></i>
+                <div class="doc-meta">
+                    <span class="doc-name">${doc.filename}</span>
+                    <span class="doc-ext">${ext}</span>
+                </div>
+            `;
+            attachGrid.appendChild(chip);
+        });
+        
+        // Prepend or Append to content? Appending is cleaner.
+        bubble.insertBefore(attachGrid, contentDiv);
     }
 
     // Performance Stats (if AI)
@@ -444,20 +482,34 @@ async function sendMessage() {
     let docContext = currentDocs.map(d => `[PLIK: ${d.filename}]\n${d.text}\n---`).join('\n');
     let finalPrompt = docContext ? `${docContext}\n\n${message}` : message;
 
+    // UI Meta for Files
+    const messageAttachments = currentDocs.map(d => ({
+        filename: d.filename,
+        mimeType: d.mimeType
+    }));
+
     let apiContent = finalPrompt;
-    let uiContentForHistory = finalPrompt;
+    let uiContentForHistory = finalPrompt; // Just for fallback
     
     if (currentImgs.length > 0) {
         apiContent = [
             { type: "text", text: finalPrompt },
             ...currentImgs.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
         ];
-        uiContentForHistory = apiContent; 
     }
 
-    chatHistory.push({ role: 'user', content: apiContent });
+    const newMessage = { 
+        role: 'user', 
+        content: apiContent, 
+        attachments: messageAttachments,
+        originalText: message // Store original user question separate from doc context
+    };
+
+    chatHistory.push(newMessage);
     saveHistory();
-    appendMessageUI('user', uiContentForHistory);
+    
+    // UI Display: show ONLY the message and the chips
+    appendMessageUI('user', message, null, false, messageAttachments);
     
     // Clear Vision State for the message just sent
     clearAllImages();
