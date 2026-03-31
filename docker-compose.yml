@@ -14,7 +14,5 @@ services:
       - REQUIRE_AUTH=false
       - LLM_HOST=http://192.168.15.15:1234
     volumes:
-      # Pliki montowane bezpośrednio z NASa — zmiana pliku = restart kontenera (nie rebuild)
-      - /volume1/docker/wiredAI/public:/app/public
-      - /volume1/docker/wiredAI/server.js:/app/server.js
-      - /volume1/docker/wiredAI/package.json:/app/package.json
+      - .:/app
+      - /app/node_modules
