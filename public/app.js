@@ -792,6 +792,14 @@ function initLang() {
     setLang(currentLang);
 }
 
+// Resilient text setter to prevent app crashes on missing IDs
+function setText(id, content, isHtml = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isHtml) el.innerHTML = content;
+    else el.textContent = content;
+}
+
 function setLang(lang) {
     currentLang = lang;
     localStorage.setItem('wired-ai-lang', lang);
@@ -816,25 +824,28 @@ function setLang(lang) {
     document.querySelector('.dropdown-header').textContent = t.menu_theme;
     document.querySelector('[data-theme="dark"]').textContent = t.theme_dark;
     document.querySelector('[data-theme="light"]').textContent = t.theme_light;
-    document.getElementById('message-input').placeholder = t.input_placeholder;
-    document.getElementById('info-modal-title').innerHTML = `<i class="bi bi-info-circle me-2 text-primary"></i><span>${t.info_title}</span>`;
-    document.getElementById('info-project-status').textContent = t.info_project_status;
-    document.getElementById('info-capabilities-title').innerHTML = `<i class="bi bi-gear-fill me-1"></i> ${t.info_capabilities}`;
-    document.getElementById('info-th-func').textContent = t.info_th_func;
-    document.getElementById('info-th-status').textContent = t.info_th_status;
-    document.getElementById('info-th-limit').textContent = t.info_th_limit;
-    
-    document.getElementById('info-f-vision').textContent = t.info_f_vision;
-    document.getElementById('info-f-docs').textContent = t.info_f_docs;
-    document.getElementById('info-f-data').textContent = t.info_f_data;
+    setText('message-input', t.input_placeholder, false); // Placeholder logic might need separate check
+    const msgInput = document.getElementById('message-input');
+    if (msgInput) msgInput.placeholder = t.input_placeholder;
 
-    document.getElementById('info-l-images').textContent = t.info_l_images;
-    document.getElementById('info-l-docs').textContent = t.info_l_docs;
-    document.getElementById('info-l-data').textContent = t.info_l_data;
+    setText('info-modal-title', `<i class="bi bi-info-circle me-2 text-primary"></i><span>${t.info_title}</span>`, true);
+    setText('info-project-status', t.info_project_status);
+    setText('info-capabilities-title', `<i class="bi bi-gear-fill me-1"></i> ${t.info_capabilities}`, true);
+    setText('info-th-func', t.info_th_func);
+    setText('info-th-status', t.info_th_status);
+    setText('info-th-limit', t.info_th_limit);
+    
+    setText('info-f-vision', t.info_f_vision);
+    setText('info-f-docs', t.info_f_docs);
+    setText('info-f-data', t.info_f_data);
+
+    setText('info-l-images', t.info_l_images);
+    setText('info-l-docs', t.info_l_docs);
+    setText('info-l-data', t.info_l_data);
 
     document.querySelectorAll('[id^="info-v-limit"]').forEach(el => el.textContent = t.info_v_limit);
     document.querySelectorAll('[id^="info-v-count"]').forEach(el => el.textContent = t.info_v_count);
-    document.getElementById('info-footer-text').textContent = t.info_footer;
+    setText('info-footer-text', t.info_footer);
 
     // Re-render if empty to update welcome message language
     if (chatHistory.length === 0) renderHistory();
