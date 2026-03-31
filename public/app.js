@@ -200,14 +200,23 @@ function renderHistory() {
     chatHistory.forEach(msg => appendMessageUI(msg.role, msg.content, msg.stats));
 }
 
-function appendMessageUI(role, content, stats = null) {
+function appendMessageUI(role, content, stats = null, isQueued = false) {
     const bubble = document.createElement('div');
     bubble.className = `message-bubble ${role === 'user' ? 'message-user' : 'message-ai'}`;
+    if (isQueued) bubble.classList.add('message-queued');
     
     // Content Container
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     bubble.appendChild(contentDiv);
+
+    // Queue Indicator
+    if (isQueued) {
+        const qStat = document.createElement('div');
+        qStat.className = 'queue-status';
+        qStat.innerHTML = '<i class="bi bi-clock"></i> W kolejce do AI...';
+        bubble.appendChild(qStat);
+    }
 
     // Render Images if any
     if (role === 'user' && Array.isArray(content)) {
@@ -257,6 +266,7 @@ function appendMessageUI(role, content, stats = null) {
     messagesWrapper.appendChild(bubble);
     scrollToBottom();
     return {
+        bubble,
         updateContent: (newContent) => {
             contentDiv.innerHTML = marked.parse(newContent);
             content = newContent; // Update content for copy function
@@ -375,16 +385,15 @@ async function sendMessage() {
 
     if (isStreaming) {
         if (!rawMessage && rawImages.length === 0) return;
-        // Queue the message
-        messageQueue.push({ message: rawMessage, images: rawImages });
-        appendMessageUI('user', rawImages.length > 0 ? 
+        // Queue the message with UI reference
+        const uiOutput = appendMessageUI('user', rawImages.length > 0 ? 
             [{type:'text', text: rawMessage}, ...rawImages.map(img => ({type:'image_url', image_url: {url: img.base64}}))] : 
-            rawMessage
+            rawMessage, null, true
         );
+        messageQueue.push({ message: rawMessage, images: rawImages, uiRef: uiOutput.bubble });
         messageInput.value = '';
         messageInput.style.height = 'auto';
         clearAllImages();
-        console.log('[Queue]: Added message to queue. Remaining:', messageQueue.length);
         return;
     }
 
@@ -518,10 +527,14 @@ async function sendMessage() {
         // Process next in queue
         if (messageQueue.length > 0) {
             const next = messageQueue.shift();
+            // Clear queue UI state if exists
+            if (next.uiRef) {
+                next.uiRef.classList.remove('message-queued');
+                const qStat = next.uiRef.querySelector('.queue-status');
+                if (qStat) qStat.remove();
+            }
             messageInput.value = next.message;
-            // Temporarily restore images to global for sendMessage to pick up
             currentImages = next.images;
-            console.log('[Queue]: Processing next message...');
             sendMessage();
         }
     }
