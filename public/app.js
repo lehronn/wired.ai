@@ -706,7 +706,16 @@ function renderPreviews() {
         if (img.type === 'document') {
             const isPdf = img.mimeType === 'application/pdf';
             const isDocx = img.filename.endsWith('.docx');
-            const iconClass = isPdf ? 'bi-file-pdf text-danger' : (isDocx ? 'bi-file-word text-primary' : 'bi-file-earmark-text text-info');
+            const isSheet = img.filename.endsWith('.xlsx') || img.filename.endsWith('.xls') || img.filename.endsWith('.csv');
+            const isJson = img.filename.endsWith('.json');
+            const isXml = img.filename.endsWith('.xml');
+
+            let iconClass = 'bi-file-earmark-text text-info';
+            if (isPdf) iconClass = 'bi-file-pdf text-danger';
+            else if (isDocx) iconClass = 'bi-file-word text-primary';
+            else if (isSheet) iconClass = 'bi-file-earmark-spreadsheet text-success';
+            else if (isJson) iconClass = 'bi-filetype-json text-warning';
+            else if (isXml) iconClass = 'bi-filetype-xml text-secondary';
             
             wrapper.innerHTML = `
                 <div class="preview-thumbnail doc-card d-flex flex-column align-items-center justify-content-center p-2">

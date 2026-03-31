@@ -5,12 +5,13 @@ const path = require('path');
 const http = require('http');
 
 // Resilient Imports for Branch Two
-let pdf, mammoth;
+let pdf, mammoth, xlsx;
 try {
     pdf = require('pdf-parse');
     mammoth = require('mammoth');
+    xlsx = require('xlsx');
 } catch (e) {
-    console.error('[Startup Warning]: Document libraries (pdf-parse/mammoth) missing. Document features disabled.');
+    console.error('[Startup Warning]: Document/Data libraries (pdf-parse/mammoth/xlsx) missing. Some features disabled.');
 }
 
 const app = express();
@@ -94,7 +95,12 @@ app.post('/api/extract-text', async (req, res) => {
             if (!mammoth) throw new Error('Biblioteka mammoth jest niedostępna.');
             const result = await mammoth.extractRawText({ buffer: buffer });
             extractedText = result.value;
-        } else if (mimeType.startsWith('text/') || filename.endsWith('.md') || filename.endsWith('.txt')) {
+        } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls') || filename.endsWith('.csv')) {
+            if (!xlsx) throw new Error('Biblioteka xlsx (Excel) jest niedostępna.');
+            const workbook = xlsx.read(buffer, { type: 'buffer' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]]; // Read first sheet
+            extractedText = xlsx.utils.sheet_to_csv(sheet);
+        } else if (mimeType.startsWith('text/') || filename.endsWith('.md') || filename.endsWith('.txt') || filename.endsWith('.json') || filename.endsWith('.xml')) {
             extractedText = buffer.toString('utf8');
         } else {
             return res.status(400).json({ error: 'Nieobsługiwany format dokumentu' });
