@@ -35,7 +35,8 @@ const translations = {
         login_btn: "Wejdź",
         error_auth: "Błędne hasło",
         error_model: "Wybierz model przed wysłaniem wiadomości.",
-        error_offline: "Usługa aktualnie nie działa — brak połączenia z serwerem AI."
+        error_offline: "Usługa aktualnie nie działa — brak połączenia z serwerem AI.",
+        welcome_msg: "Witaj w **Wired AI: One**! 🤖✨\n\nJestem Twoim zaawansowanym asystentem na Synology. Potrafię:\n- 📝 **Analizować tekst** i odpowiadać na pytania.\n- 📄 **Czytać dokumenty** (PDF, Word, TXT, MD).\n- 🖼️ **Oglądać wiele obrazów** jednocześnie (Multi-Vision).\n\nW czym mogę Ci dzisiaj pomóc? 🚀"
     },
     en: {
         status_checking: "Checking...",
@@ -59,7 +60,8 @@ const translations = {
         login_btn: "Enter",
         error_auth: "Invalid password",
         error_model: "Please select a model before sending.",
-        error_offline: "Service currently unavailable — no connection to AI server."
+        error_offline: "Service currently unavailable — no connection to AI server.",
+        welcome_msg: "Welcome to **Wired AI: One**! 🤖✨\n\nI am your advanced assistant on Synology. I can:\n- 📝 **Analyze text** and answer questions.\n- 📄 **Read documents** (PDF, Word, TXT, MD).\n- 🖼️ **See multiple images** at once (Multi-Vision).\n\nHow can I help you today? 🚀"
     }
 };
 
@@ -198,6 +200,12 @@ function clearHistory() {
 // --- UI Rendering ---
 function renderHistory() {
     messagesWrapper.innerHTML = '';
+    if (chatHistory.length === 0) {
+        // Show welcome assistant message if history is empty
+        const welcomeText = translations[currentLang].welcome_msg;
+        appendMessageUI('assistant', welcomeText);
+        return;
+    }
     chatHistory.forEach(msg => appendMessageUI(msg.role, msg.content, msg.stats));
 }
 
@@ -777,4 +785,7 @@ function setLang(lang) {
     document.getElementById('login-msg').textContent = t.login_title;
     document.querySelectorAll('#login-form button').forEach(b => b.textContent = t.login_btn);
     document.getElementById('login-error').textContent = t.error_auth;
+
+    // Re-render if empty to update welcome message language
+    if (chatHistory.length === 0) renderHistory();
 }
