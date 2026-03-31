@@ -709,8 +709,12 @@ function handleImageSelect(e) {
                         renderPreviews();
                     } else {
                         console.error('[Doc Error]:', data.error);
+                        showToast('Błąd Dokumentu', data.error, 'danger');
                     }
-                } catch (err) { console.error('[Fetch Error]:', err); }
+                } catch (err) { 
+                    console.error('[Fetch Error]:', err);
+                    showToast('Błąd Serwera', 'Nie udało się połączyć z serwerem ekstrakcji.', 'danger');
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -786,6 +790,36 @@ function initTheme() {
 function setTheme(theme) {
     document.documentElement.setAttribute('data-bs-theme', theme);
     localStorage.setItem('wired-ai-theme', theme);
+}
+
+// Notification System (Toasts)
+function showToast(title, message, type = 'danger') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast glass-card border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-transparent border-0 text-white">
+                <i class="bi bi-exclamation-triangle-fill me-2 text-${type}"></i>
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="this.closest('.toast').remove()"></button>
+            </div>
+            <div class="toast-body text-white-50">
+                ${message}
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', toastHtml);
+    const toastEl = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastEl, { delay: 5000 });
+    bsToast.show();
+
+    // Auto-remove from DOM after hidden
+    toastEl.addEventListener('hidden.bs.toast', () => {
+        toastEl.remove();
+    });
 }
 
 function initLang() {
