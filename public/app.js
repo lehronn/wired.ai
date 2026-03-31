@@ -35,21 +35,20 @@ const translations = {
         login_btn: "Wejdź",
         error_offline: "Usługa aktualnie nie działa — brak połączenia z serwerem AI.",
         welcome_msg: "Witaj w **Wired AI: One**! 🤖✨\n\nJestem Twoim zaawansowanym asystentem na Synology. Potrafię:\n- 📝 **Analizować tekst** i odpowiadać na pytania.\n- 📄 **Czytać dokumenty** (PDF, Word, TXT, MD).\n- 🖼️ **Oglądać wiele obrazów** jednocześnie (Multi-Vision).\n\nW czym mogę Ci dzisiaj pomóc? 🚀",
-        info_title: "O systemie Wired AI",
-        info_project_status: "Status Projektu: Branch Two (Alpha)",
-        info_capabilities: "Możliwości i Limity",
-        info_th_func: "Funkcja",
-        info_th_status: "Status",
+        info_title: "Specyfikacja Wired AI",
+        info_project_status: "Wersja Systemu: 1.0.1 (Branch Two)",
+        info_capabilities: "Specyfikacja Techniczna",
+        info_th_func: "Typ Pliku",
+        info_th_status: "Formaty",
         info_th_limit: "Limit / Info",
-        info_s_works: "Działa",
-        info_s_limit: "Limit",
-        info_s_system: "System",
-        info_f_vision: "Multi-Vision",
-        info_f_queue: "Kolejkowanie",
-        info_f_capacity: "Pojemność",
-        info_f_history: "Historia",
+        info_f_vision: "Obrazy",
         info_f_docs: "Dokumenty",
-        info_l_queue: "Płynne serie pytań",
+        info_f_data: "Arkusze i Dane",
+        info_l_images: "JPG, PNG, WEBP",
+        info_l_docs: "PDF, DOCX, TXT, MD",
+        info_l_data: "XLSX, CSV, JSON, XML",
+        info_v_limit: "Łącznie do 20MB",
+        info_v_count: "Do 10 plików",
         info_footer: "Twoje dane są przetwarzane lokalnie na Synology. Szyfrowane logowanie chroni prywatność Twojej instancji."
     },
     en: {
@@ -74,21 +73,20 @@ const translations = {
         login_btn: "Enter",
         error_offline: "Service currently unavailable — no connection to AI server.",
         welcome_msg: "Welcome to **Wired AI: One**! 🤖✨\n\nI am your advanced assistant on Synology. I can:\n- 📝 **Analyze text** and answer questions.\n- 📄 **Read documents** (PDF, Word, TXT, MD).\n- 🖼️ **See multiple images** at once (Multi-Vision).\n\nHow can I help you today? 🚀",
-        info_title: "About Wired AI System",
-        info_project_status: "Project Status: Branch Two (Alpha)",
-        info_capabilities: "Capabilities & Limits",
-        info_th_func: "Feature",
-        info_th_status: "Status",
+        info_title: "Wired AI Specification",
+        info_project_status: "System Version: 1.0.1 (Branch Two)",
+        info_capabilities: "Technical Specification",
+        info_th_func: "File Type",
+        info_th_status: "Formats",
         info_th_limit: "Limit / Info",
-        info_s_works: "Active",
-        info_s_limit: "Limit",
-        info_s_system: "System",
-        info_f_vision: "Multi-Vision",
-        info_f_queue: "Queueing",
-        info_f_capacity: "Capacity",
-        info_f_history: "History",
+        info_f_vision: "Images",
         info_f_docs: "Documents",
-        info_l_queue: "Smooth message series",
+        info_f_data: "Sheets & Data",
+        info_l_images: "JPG, PNG, WEBP",
+        info_l_docs: "PDF, DOCX, TXT, MD",
+        info_l_data: "XLSX, CSV, JSON, XML",
+        info_v_limit: "Total up to 20MB",
+        info_v_count: "Up to 10 files",
         info_footer: "Your data is processed locally on Synology. Encrypted login protects your instance privacy."
     }
 };
@@ -827,15 +825,15 @@ function setLang(lang) {
     document.getElementById('info-th-limit').textContent = t.info_th_limit;
     
     document.getElementById('info-f-vision').textContent = t.info_f_vision;
-    document.getElementById('info-f-queue').textContent = t.info_f_queue;
-    document.getElementById('info-f-capacity').textContent = t.info_f_capacity;
-    document.getElementById('info-f-history').textContent = t.info_f_history;
     document.getElementById('info-f-docs').textContent = t.info_f_docs;
+    document.getElementById('info-f-data').textContent = t.info_f_data;
 
-    document.querySelectorAll('[id^="info-s-works"]').forEach(el => el.textContent = t.info_s_works);
-    document.getElementById('info-s-limit').textContent = t.info_s_limit;
-    document.getElementById('info-s-system').textContent = t.info_s_system;
-    document.getElementById('info-l-queue').textContent = t.info_l_queue;
+    document.getElementById('info-l-images').textContent = t.info_l_images;
+    document.getElementById('info-l-docs').textContent = t.info_l_docs;
+    document.getElementById('info-l-data').textContent = t.info_l_data;
+
+    document.querySelectorAll('[id^="info-v-limit"]').forEach(el => el.textContent = t.info_v_limit);
+    document.querySelectorAll('[id^="info-v-count"]').forEach(el => el.textContent = t.info_v_count);
     document.getElementById('info-footer-text').textContent = t.info_footer;
 
     // Re-render if empty to update welcome message language
