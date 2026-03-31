@@ -33,10 +33,24 @@ const translations = {
         clear_confirm: "Wyczyścić historię czatu?",
         login_title: "Wprowadź hasło",
         login_btn: "Wejdź",
-        error_auth: "Błędne hasło",
-        error_model: "Wybierz model przed wysłaniem wiadomości.",
         error_offline: "Usługa aktualnie nie działa — brak połączenia z serwerem AI.",
-        welcome_msg: "Witaj w **Wired AI: One**! 🤖✨\n\nJestem Twoim zaawansowanym asystentem na Synology. Potrafię:\n- 📝 **Analizować tekst** i odpowiadać na pytania.\n- 📄 **Czytać dokumenty** (PDF, Word, TXT, MD).\n- 🖼️ **Oglądać wiele obrazów** jednocześnie (Multi-Vision).\n\nW czym mogę Ci dzisiaj pomóc? 🚀"
+        welcome_msg: "Witaj w **Wired AI: One**! 🤖✨\n\nJestem Twoim zaawansowanym asystentem na Synology. Potrafię:\n- 📝 **Analizować tekst** i odpowiadać na pytania.\n- 📄 **Czytać dokumenty** (PDF, Word, TXT, MD).\n- 🖼️ **Oglądać wiele obrazów** jednocześnie (Multi-Vision).\n\nW czym mogę Ci dzisiaj pomóc? 🚀",
+        info_title: "O systemie Wired AI",
+        info_project_status: "Status Projektu: Branch Two (Alpha)",
+        info_capabilities: "Możliwości i Limity",
+        info_th_func: "Funkcja",
+        info_th_status: "Status",
+        info_th_limit: "Limit / Info",
+        info_s_works: "Działa",
+        info_s_limit: "Limit",
+        info_s_system: "System",
+        info_f_vision: "Multi-Vision",
+        info_f_queue: "Kolejkowanie",
+        info_f_capacity: "Pojemność",
+        info_f_history: "Historia",
+        info_f_docs: "Dokumenty",
+        info_l_queue: "Płynne serie pytań",
+        info_footer: "Twoje dane są przetwarzane lokalnie na Synology. Szyfrowane logowanie chroni prywatność Twojej instancji."
     },
     en: {
         status_checking: "Checking...",
@@ -58,10 +72,24 @@ const translations = {
         clear_confirm: "Clear chat history?",
         login_title: "Enter password",
         login_btn: "Enter",
-        error_auth: "Invalid password",
-        error_model: "Please select a model before sending.",
         error_offline: "Service currently unavailable — no connection to AI server.",
-        welcome_msg: "Welcome to **Wired AI: One**! 🤖✨\n\nI am your advanced assistant on Synology. I can:\n- 📝 **Analyze text** and answer questions.\n- 📄 **Read documents** (PDF, Word, TXT, MD).\n- 🖼️ **See multiple images** at once (Multi-Vision).\n\nHow can I help you today? 🚀"
+        welcome_msg: "Welcome to **Wired AI: One**! 🤖✨\n\nI am your advanced assistant on Synology. I can:\n- 📝 **Analyze text** and answer questions.\n- 📄 **Read documents** (PDF, Word, TXT, MD).\n- 🖼️ **See multiple images** at once (Multi-Vision).\n\nHow can I help you today? 🚀",
+        info_title: "About Wired AI System",
+        info_project_status: "Project Status: Branch Two (Alpha)",
+        info_capabilities: "Capabilities & Limits",
+        info_th_func: "Feature",
+        info_th_status: "Status",
+        info_th_limit: "Limit / Info",
+        info_s_works: "Active",
+        info_s_limit: "Limit",
+        info_s_system: "System",
+        info_f_vision: "Multi-Vision",
+        info_f_queue: "Queueing",
+        info_f_capacity: "Capacity",
+        info_f_history: "History",
+        info_f_docs: "Documents",
+        info_l_queue: "Smooth message series",
+        info_footer: "Your data is processed locally on Synology. Encrypted login protects your instance privacy."
     }
 };
 
@@ -791,9 +819,24 @@ function setLang(lang) {
     document.querySelector('[data-theme="dark"]').textContent = t.theme_dark;
     document.querySelector('[data-theme="light"]').textContent = t.theme_light;
     document.getElementById('message-input').placeholder = t.input_placeholder;
-    document.getElementById('login-msg').textContent = t.login_title;
-    document.querySelectorAll('#login-form button').forEach(b => b.textContent = t.login_btn);
-    document.getElementById('login-error').textContent = t.error_auth;
+    document.getElementById('info-modal-title').innerHTML = `<i class="bi bi-info-circle me-2 text-primary"></i><span>${t.info_title}</span>`;
+    document.getElementById('info-project-status').textContent = t.info_project_status;
+    document.getElementById('info-capabilities-title').innerHTML = `<i class="bi bi-gear-fill me-1"></i> ${t.info_capabilities}`;
+    document.getElementById('info-th-func').textContent = t.info_th_func;
+    document.getElementById('info-th-status').textContent = t.info_th_status;
+    document.getElementById('info-th-limit').textContent = t.info_th_limit;
+    
+    document.getElementById('info-f-vision').textContent = t.info_f_vision;
+    document.getElementById('info-f-queue').textContent = t.info_f_queue;
+    document.getElementById('info-f-capacity').textContent = t.info_f_capacity;
+    document.getElementById('info-f-history').textContent = t.info_f_history;
+    document.getElementById('info-f-docs').textContent = t.info_f_docs;
+
+    document.querySelectorAll('[id^="info-s-works"]').forEach(el => el.textContent = t.info_s_works);
+    document.getElementById('info-s-limit').textContent = t.info_s_limit;
+    document.getElementById('info-s-system').textContent = t.info_s_system;
+    document.getElementById('info-l-queue').textContent = t.info_l_queue;
+    document.getElementById('info-footer-text').textContent = t.info_footer;
 
     // Re-render if empty to update welcome message language
     if (chatHistory.length === 0) renderHistory();
