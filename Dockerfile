@@ -1,5 +1,5 @@
-# Use lightweight Node alpine image
-FROM node:20-alpine
+# Use node-slim which is more compatible with diverse NPM packages than alpine
+FROM node:20-slim
 
 # Set working directory
 WORKDIR /app
