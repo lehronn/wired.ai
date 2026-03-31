@@ -231,6 +231,10 @@ body {
     flex-shrink: 0;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+.send-btn.stop-mode {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
 .send-btn:hover { transform: scale(1.1); }
 
 /* Status Dot */

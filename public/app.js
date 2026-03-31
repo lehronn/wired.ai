@@ -9,6 +9,7 @@ let chatHistory = JSON.parse(localStorage.getItem('wired-ai-history') || '[]');
 let systemPrompt = localStorage.getItem('wired-ai-system-prompt') || 'You are a helpful AI assistant. Respond concisely and professionally.';
 let currentLang = localStorage.getItem('wired-ai-lang') || 'pl';
 let isStreaming = false;
+let abortController = null;
 
 const translations = {
     pl: {
@@ -321,30 +322,33 @@ function toggleOfflineMode(isOffline) {
     if (isOffline) {
         warning.classList.remove('d-none');
         messageInput.disabled = true;
-        sendBtn.disabled = true;
+        setStreamingMode(false); // Reset generating state on offline
         inputContainer.style.opacity = '0.5';
         inputContainer.style.pointerEvents = 'none';
         document.getElementById('offline-msg').textContent = translations[currentLang].error_offline;
     } else {
         warning.classList.add('d-none');
         messageInput.disabled = false;
-        sendBtn.disabled = false;
         inputContainer.style.opacity = '1';
         inputContainer.style.pointerEvents = 'auto';
     }
 }
 async function sendMessage() {
+    if (isStreaming) {
+        stopGeneration();
+        return;
+    }
+
     const message = messageInput.value.trim();
     const selectedModel = modelSelector.value;
     
-    if ((!message && currentImages.length === 0) || isStreaming) return;
+    if ((!message && currentImages.length === 0)) return;
     if (!selectedModel) {
         alert(translations[currentLang].error_model);
         return;
     }
 
-    isStreaming = true;
-    sendBtn.disabled = true;
+    setStreamingMode(true);
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
@@ -402,8 +406,10 @@ async function sendMessage() {
         };
         console.log('[API Request Content (Massaged)]:', bodyData);
 
+        abortController = new AbortController();
         const response = await fetch('/api/v1/chat/completions', {
             method: 'POST',
+            signal: abortController.signal,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
@@ -451,11 +457,35 @@ async function sendMessage() {
         saveHistory();
 
     } catch (err) {
-        console.error('[Vision API Error]:', err);
-        uiController.updateContent(`⚠ Błąd: ${err.message}`);
+        if (err.name === 'AbortError') {
+            console.log('[Vision API]: Generation aborted by user.');
+            uiController.updateContent(`*Anulowano przez użytkownika.*`);
+        } else {
+            console.error('[Vision API Error]:', err);
+            uiController.updateContent(`⚠ Błąd: ${err.message}`);
+        }
     } finally {
-        isStreaming = false;
-        sendBtn.disabled = false;
+        setStreamingMode(false);
+    }
+}
+
+function setStreamingMode(enabled) {
+    isStreaming = enabled;
+    if (enabled) {
+        sendBtn.classList.add('btn-danger', 'stop-mode');
+        sendBtn.classList.remove('btn-primary');
+        sendBtn.innerHTML = '<i class="bi bi-stop-fill"></i>';
+    } else {
+        sendBtn.classList.add('btn-primary');
+        sendBtn.classList.remove('btn-danger', 'stop-mode');
+        sendBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
+        abortController = null;
+    }
+}
+
+function stopGeneration() {
+    if (abortController) {
+        abortController.abort();
     }
 }
 
