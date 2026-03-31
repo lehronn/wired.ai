@@ -218,20 +218,42 @@ async function fetchModels() {
     try {
         const req = await fetch('/api/v1/models', { headers: { 'Authorization': `Bearer ${authToken}` } });
         const res = await req.json();
+        
         if (res.data) {
-            modelSelector.innerHTML = '<option value="" id="opt-select-model">Wybierz model...</option>';
-            res.data.forEach(m => {
+            modelSelector.innerHTML = `<option value="" id="opt-select-model">${translations[currentLang].select_model}</option>`;
+            
+            // Sort: loaded models first
+            const sortedModels = res.data.sort((a, b) => {
+                const aLoaded = a.loaded_instances && a.loaded_instances.length > 0;
+                const bLoaded = b.loaded_instances && b.loaded_instances.length > 0;
+                return bLoaded - aLoaded;
+            });
+
+            const loadedModels = sortedModels.filter(m => m.loaded_instances && m.loaded_instances.length > 0);
+            
+            sortedModels.forEach(m => {
                 const opt = document.createElement('option');
+                const isLoaded = m.loaded_instances && m.loaded_instances.length > 0;
                 opt.value = m.id;
-                opt.textContent = m.id;
+                opt.textContent = isLoaded ? `● ${m.id} (Loaded)` : m.id;
+                if (isLoaded) opt.classList.add('text-success');
                 modelSelector.appendChild(opt);
             });
-            // Try to restore last used model
+
+            // Logic: 
+            // 1. If only one model is loaded -> select it
+            // 2. Else if last model is in list -> select it
             const lastModel = localStorage.getItem('wired-ai-last-model');
-            if (lastModel) modelSelector.value = lastModel;
+            
+            if (loadedModels.length === 1) {
+                modelSelector.value = loadedModels[0].id;
+                localStorage.setItem('wired-ai-last-model', loadedModels[0].id);
+            } else if (lastModel && sortedModels.some(m => m.id === lastModel)) {
+                modelSelector.value = lastModel;
+            }
         }
     } catch (e) {
-        console.error('Failed to fetch models');
+        console.error('Failed to fetch models', e);
     }
 }
 

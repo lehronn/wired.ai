@@ -85,10 +85,12 @@ app.use('/api/v1', (req, res, next) => {
         target: LLM_API_URL,
         changeOrigin: true,
         pathRewrite: (path, req) => {
-            // Używamy originalUrl, bo Express potrafi "zjadać" prefix w zmiennej path
-            const original = req.originalUrl.split('?')[0]; // ignorujemy query params w rewriterze
+            const original = req.originalUrl.split('?')[0];
+            // Dla modeli chcemy natywną odpowiedź LM Studio (z loaded_instances)
+            if (original === '/api/v1/models') return original;
+            // Dla czatu i pozostałych, używamy standardowego /v1
             const finalPath = original.replace('/api/v1', '/v1');
-            console.log(`[Proxy] incoming: ${original} -> target: ${finalPath}`);
+            console.log(`[Proxy] ${original} -> ${finalPath}`);
             return finalPath;
         },
         on: {
