@@ -19,8 +19,8 @@ if [ ! -d "node_modules/xlsx" ]; then MISSING=1; fi
 
 if [ "$MISSING" -eq 1 ]; then
     echo "[Auto-Healer]: Wykryto brakujące biblioteki (PDF/Word/Excel)! Instaluję braki... 🚀"
-    # Używamy --prefer-offline i --no-package-lock, aby uniknąć konfliktów. Wyłączamy fund/audit dla szybkości.
-    npm install pdf-parse mammoth xlsx --omit=dev --no-package-lock --no-save --prefer-offline --no-fund --no-audit
+    # Używamy --prefer-offline, --no-package-lock i --unsafe-perm, aby uniknąć konfliktów na NAS.
+    npm install pdf-parse mammoth xlsx --omit=dev --no-package-lock --no-save --prefer-offline --no-fund --no-audit --unsafe-perm
     
     if [ $? -eq 0 ]; then
         echo "[Auto-Healer]: Sukces! Biblioteki zostały zainstalowane pomyślnie. 🔥"

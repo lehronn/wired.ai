@@ -830,8 +830,14 @@ function initLang() {
 function setText(id, content, isHtml = false) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (isHtml) el.innerHTML = content;
-    else el.textContent = content;
+    
+    // If it's an input or textarea, handle as placeholder
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+        el.placeholder = content;
+    } else {
+        if (isHtml) el.innerHTML = content;
+        else el.textContent = content;
+    }
 }
 
 function setLang(lang) {

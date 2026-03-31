@@ -87,18 +87,19 @@ app.post('/api/extract-text', async (req, res) => {
         const buffer = Buffer.from(base64.split(',')[1], 'base64');
         let extractedText = '';
 
+        // Lazy Loading Libraries for NAS Resilience
         if (mimeType === 'application/pdf') {
-            if (!pdf) throw new Error('Biblioteka pdf-parse jest niedostępna.');
+            try { pdf = require('pdf-parse'); } catch(e) { throw new Error('Biblioteka pdf-parse jest niedostępna (instalacja trwa).'); }
             const data = await pdf(buffer);
             extractedText = data.text;
         } else if (filename.endsWith('.docx')) {
-            if (!mammoth) throw new Error('Biblioteka mammoth jest niedostępna.');
+            try { mammoth = require('mammoth'); } catch(e) { throw new Error('Biblioteka mammoth jest niedostępna (instalacja trwa).'); }
             const result = await mammoth.extractRawText({ buffer: buffer });
             extractedText = result.value;
         } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls') || filename.endsWith('.csv')) {
-            if (!xlsx) throw new Error('Biblioteka xlsx (Excel) jest niedostępna.');
+            try { xlsx = require('xlsx'); } catch(e) { throw new Error('Biblioteka xlsx (Excel) jest niedostępna (instalacja trwa).'); }
             const workbook = xlsx.read(buffer, { type: 'buffer' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]]; // Read first sheet
+            const sheet = workbook.Sheets[workbook.SheetNames[0]]; 
             extractedText = xlsx.utils.sheet_to_csv(sheet);
         } else if (mimeType.startsWith('text/') || filename.endsWith('.md') || filename.endsWith('.txt') || filename.endsWith('.json') || filename.endsWith('.xml')) {
             extractedText = buffer.toString('utf8');
