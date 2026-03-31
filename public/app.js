@@ -151,7 +151,41 @@ async function verifyToken(token) {
 }
 
 // --- State & Storage ---
-function saveHistory() { localStorage.setItem('wired-ai-history', JSON.stringify(chatHistory.slice(-50))); }
+function saveHistory() { 
+    const historyToSave = chatHistory.slice(-50);
+    try {
+        localStorage.setItem('wired-ai-history', JSON.stringify(historyToSave));
+    } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+            console.warn('[Storage]: Memory full, stripping old images to clear space...');
+            // Backup strategy: strip images from older messages (starting from first 20)
+            const cleanedHistory = historyToSave.map((msg, index) => {
+                if (index < 30 && Array.isArray(msg.content)) {
+                    // Replace base64 images with placeholder strings
+                    const filteredContent = msg.content.map(c => 
+                        c.type === 'image_url' ? { type: 'text', text: '[Zdjęcie usunięte z lokalnego cache by oszczędzać miejsce]' } : c
+                    );
+                    return { ...msg, content: filteredContent };
+                }
+                return msg;
+            });
+            
+            try {
+                localStorage.setItem('wired-ai-history', JSON.stringify(cleanedHistory));
+            } catch (e2) {
+                // Final fallback: save only text for everything
+                console.error('[Storage]: Still full, saving text only.');
+                const textOnly = historyToSave.map(msg => ({
+                    role: msg.role,
+                    content: Array.isArray(msg.content) ? 
+                        msg.content.filter(c => c.type === 'text').map(c => c.text).join('\n') || '[Obraz]' : 
+                        msg.content
+                }));
+                localStorage.setItem('wired-ai-history', JSON.stringify(textOnly));
+            }
+        }
+    }
+}
 function clearHistory() { 
     if(confirm('Wyczyścić historię czatu?')) {
         chatHistory = []; 
