@@ -270,3 +270,60 @@ body {
     .message-bubble { max-width: 96%; font-size: 0.95rem; }
     .input-wrapper { margin-bottom: 0.5rem; }
 }
+
+/* Vision Styles */
+#image-preview-container {
+    animation: fadeIn 0.3s ease-out;
+}
+.preview-image-wrapper {
+    position: relative;
+    display: inline-block;
+    transition: transform 0.2s;
+}
+.preview-image-wrapper:hover {
+    transform: scale(1.05);
+}
+.preview-thumbnail {
+    max-height: 80px;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.remove-image-pill {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    line-height: 1;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+#upload-btn {
+    transition: color 0.2s, transform 0.2s;
+}
+#upload-btn:hover {
+    color: var(--primary) !important;
+    transform: translateY(-2px);
+}
+.message-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--glass-border);
+    display: block;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.message-images-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}

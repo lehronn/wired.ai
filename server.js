@@ -14,6 +14,7 @@ app.use(cors());
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '20mb' }));
 
 // Simple Authorization Middleware
 const authMiddleware = (req, res, next) => {
@@ -30,7 +31,7 @@ const authMiddleware = (req, res, next) => {
 // Protect API routes
 app.use('/api', authMiddleware);
 
-app.post('/auth/verify', express.json(), (req, res) => {
+app.post('/auth/verify', (req, res) => {
     if (!REQUIRE_AUTH || !APP_PASSWORD) {
         return res.json({ success: true, message: "No password required" });
     }

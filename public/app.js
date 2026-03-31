@@ -82,6 +82,13 @@ const resetPromptBtn = document.getElementById('reset-prompt-btn');
 const clearHistoryBtn = document.getElementById('clear-history-btn');
 const exportBtn = document.getElementById('export-btn');
 
+// --- Vision Elements ---
+const imageUpload = document.getElementById('image-upload');
+const uploadBtn = document.getElementById('upload-btn');
+const imagePreviewContainer = document.getElementById('image-preview-container');
+
+let currentImages = []; // Array of { id, base64 }
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
@@ -164,8 +171,28 @@ function appendMessageUI(role, content, stats = null) {
     // Content Container
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
-    contentDiv.innerHTML = role === 'assistant' ? marked.parse(content) : content.replace(/\n/g, '<br>');
     bubble.appendChild(contentDiv);
+
+    // Render Images if any
+    if (role === 'user' && Array.isArray(content)) {
+        const images = content.filter(c => c.type === 'image_url');
+        const textObj = content.find(c => c.type === 'text');
+        
+        if (images.length > 0) {
+            const grid = document.createElement('div');
+            grid.className = 'message-images-grid';
+            images.forEach(img => {
+                const imgEl = document.createElement('img');
+                imgEl.src = img.image_url.url;
+                imgEl.className = 'message-image shadow-sm';
+                grid.appendChild(imgEl);
+            });
+            bubble.insertBefore(grid, contentDiv);
+        }
+        contentDiv.innerHTML = textObj ? textObj.text.replace(/\n/g, '<br>') : '';
+    } else {
+        contentDiv.innerHTML = role === 'assistant' ? marked.parse(content) : content.replace(/\n/g, '<br>');
+    }
 
     // Performance Stats (if AI)
     if (role === 'assistant' && stats) {
@@ -306,14 +333,13 @@ function toggleOfflineMode(isOffline) {
         inputContainer.style.pointerEvents = 'auto';
     }
 }
-
 async function sendMessage() {
-    const content = messageInput.value.trim();
+    const message = messageInput.value.trim();
     const selectedModel = modelSelector.value;
     
-    if (!content || isStreaming) return;
+    if ((!message && currentImages.length === 0) || isStreaming) return;
     if (!selectedModel) {
-        alert('Wybierz model przed wysłaniem wiadomości.');
+        alert(translations[currentLang].error_model);
         return;
     }
 
@@ -322,9 +348,24 @@ async function sendMessage() {
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
-    chatHistory.push({ role: 'user', content });
+    // Build multimodal content if images exist
+    let apiContent = message;
+    let uiContentForHistory = message;
+    
+    if (currentImages.length > 0) {
+        apiContent = [
+            { type: "text", text: message },
+            ...currentImages.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
+        ];
+        uiContentForHistory = apiContent; // Store the same structure for UI rendering
+    }
+
+    chatHistory.push({ role: 'user', content: apiContent });
     saveHistory();
-    appendMessageUI('user', content);
+    appendMessageUI('user', uiContentForHistory);
+    
+    // Clear Vision State
+    clearAllImages();
 
     const startTime = performance.now();
     let ttft = 0; // Time to first token
@@ -469,6 +510,62 @@ function setupEventListeners() {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
     };
+
+    // --- Vision Listeners ---
+    uploadBtn.onclick = () => imageUpload.click();
+    imageUpload.onchange = handleImageSelect;
+}
+
+function handleImageSelect(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    files.forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const id = Date.now() + Math.random().toString(16).slice(2);
+            currentImages.push({ id, base64: event.target.result });
+            renderPreviews();
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderPreviews() {
+    imagePreviewContainer.innerHTML = '';
+    if (currentImages.length === 0) {
+        imagePreviewContainer.classList.add('d-none');
+        return;
+    }
+
+    imagePreviewContainer.classList.remove('d-none');
+    currentImages.forEach((img, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'preview-image-wrapper';
+        wrapper.innerHTML = `
+            <img src="${img.base64}" class="preview-thumbnail shadow-sm">
+            <button class="btn btn-danger remove-image-pill" onclick="removeImage('${img.id}')">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        imagePreviewContainer.appendChild(wrapper);
+    });
+}
+
+function removeImage(id) {
+    currentImages = currentImages.filter(img => img.id !== id);
+    renderPreviews();
+}
+
+// Make globally available for onclick
+window.removeImage = removeImage;
+
+function clearAllImages() {
+    currentImages = [];
+    imageUpload.value = '';
+    renderPreviews();
 }
 
 function initTheme() {
