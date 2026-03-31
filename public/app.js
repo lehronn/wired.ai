@@ -513,8 +513,8 @@ async function sendMessage() {
     chatHistory.push(newMessage);
     saveHistory();
     
-    // UI Display: show ONLY the message and the chips
-    appendMessageUI('user', message, null, false, messageAttachments);
+    // UI Display: show images and the chips alongside the text
+    appendMessageUI('user', apiContent, null, false, messageAttachments, message);
     
     // Clear Vision State for the message just sent
     clearAllImages();
