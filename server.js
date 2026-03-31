@@ -4,10 +4,15 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const http = require('http');
 
-// Static Standard Imports
-const pdf = require('pdf-parse');
-const mammoth = require('mammoth');
-const xlsx = require('xlsx');
+// Resilient Imports (Prevent Deathloop if modules are missing on NAS)
+let pdf, mammoth, xlsx;
+try {
+    pdf = require('pdf-parse');
+    mammoth = require('mammoth');
+    xlsx = require('xlsx');
+} catch (e) {
+    console.error('[Startup Warning]: Document libraries missing. Re-run npm install in terminal.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 8090;
@@ -35,28 +40,20 @@ const authMiddleware = (req, res, next) => {
 // Protect API routes
 app.use('/api', authMiddleware);
 
-// Proxy logic (MUST BE BEFORE express.json() for streaming)
+// Proxy logic
 app.use('/api/v1', (req, res, next) => {
     const proxy = createProxyMiddleware({
         target: LLM_API_URL,
         changeOrigin: true,
         pathRewrite: (path, req) => {
             const original = req.originalUrl.split('?')[0];
-            if (original === '/api/v1/models') {
-                return original;
-            }
-            const finalPath = original.replace('/api/v1', '/v1');
-            return finalPath;
+            if (original === '/api/v1/models') return original;
+            return original.replace('/api/v1', '/v1');
         },
         on: {
-            proxyReq: (proxyReq, req, res) => {
-                proxyReq.removeHeader('authorization');
-            },
+            proxyReq: (proxyReq) => proxyReq.removeHeader('authorization'),
             error: (err, req, res) => {
-                console.error('[Proxy Error]:', err.message);
-                if (!res.headersSent) {
-                    res.status(502).json({ error: 'Błąd połączenia z backendem LLM.' });
-                }
+                if (!res.headersSent) res.status(502).json({ error: 'Błąd połączenia z backendem LLM.' });
             }
         },
         timeout: 600000,
@@ -77,12 +74,15 @@ app.post('/api/extract-text', async (req, res) => {
         let extractedText = '';
 
         if (mimeType === 'application/pdf') {
+            if (!pdf) throw new Error('Biblioteka pdf-parse jest niedostępna.');
             const data = await pdf(buffer);
             extractedText = data.text;
         } else if (filename.endsWith('.docx')) {
+            if (!mammoth) throw new Error('Biblioteka mammoth jest niedostępna.');
             const result = await mammoth.extractRawText({ buffer: buffer });
             extractedText = result.value;
         } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls') || filename.endsWith('.csv')) {
+            if (!xlsx) throw new Error('Biblioteka xlsx (Excel) jest niedostępna.');
             const workbook = xlsx.read(buffer, { type: 'buffer' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]]; 
             extractedText = xlsx.utils.sheet_to_csv(sheet);
