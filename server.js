@@ -8,8 +8,21 @@ const http = require('http');
 let pdf_parse, mammoth, xlsx;
 try {
     const pdfImport = require('pdf-parse');
-    // Handle ESM, CJS or specific property exports like PDFParse
-    pdf_parse = typeof pdfImport === 'function' ? pdfImport : (pdfImport.PDFParse || pdfImport.default || pdfImport);
+    if (typeof pdfImport === 'function') {
+        pdf_parse = pdfImport;
+    } else {
+        // Universal Bridge for modern pdf-parse forks (e.g., v2.0.0+)
+        // This handles cases where the library exports a Class instead of a function.
+        const Parser = (pdfImport.PDFParse || pdfImport.default || pdfImport);
+        pdf_parse = async (buf) => {
+            // Logic: Instantiate with 'data' in constructor as some versions 
+            // fail with 'no url parameter provided' if passed to .load() directly.
+            const inst = new Parser({ data: buf, verbosity: 0 }); 
+            await inst.load();      // Initialize the internal PDF.js loading task
+            const result = await inst.getText(); // Extract text from all pages
+            return { text: result.text }; // Map to legacy result object structure
+        };
+    }
     mammoth = require('mammoth');
     xlsx = require('xlsx');
 } catch (e) {

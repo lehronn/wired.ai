@@ -492,19 +492,22 @@ async function sendMessage() {
         finalPrompt = `WAŻNE: Skoncentruj się na poniższym dokumencie jako głównym źródle informacji dla tego pytania.\n\n${docContext}\n\nPYTANIE: ${message}`;
     }
 
-    // UI Meta for Files
-    const messageAttachments = currentDocs.map(d => ({
-        filename: d.filename,
-        mimeType: d.mimeType
-    }));
+    // UI Meta for Files (Images + Documents)
+    const messageAttachments = [
+        ...currentImgs.map(img => ({ filename: img.filename, type: 'image' })),
+        ...currentDocs.map(d => ({ filename: d.filename, type: 'document', mimeType: d.mimeType }))
+    ];
 
     let apiContent = finalPrompt;
-    let uiContentForHistory = finalPrompt; // Just for fallback
     
     if (currentImgs.length > 0) {
         apiContent = [
             { type: "text", text: finalPrompt },
-            ...currentImgs.map(img => ({ type: "image_url", image_url: { url: img.base64 } }))
+            ...currentImgs.map(img => ({ 
+                type: "image_url", 
+                image_url: { url: img.base64 }, 
+                filename: img.filename // Store filename for history placeholders
+            }))
         ];
     }
 
@@ -512,16 +515,16 @@ async function sendMessage() {
         role: 'user', 
         content: apiContent, 
         attachments: messageAttachments,
-        originalText: message // Store original user question separate from doc context
+        originalText: message
     };
 
     chatHistory.push(newMessage);
     saveHistory();
     
-    // UI Display: show images and the chips alongside the text
+    // UI Display
     appendMessageUI('user', apiContent, null, false, messageAttachments, message);
     
-    // Clear Vision State for the message just sent
+    // Clear Vision State
     clearAllImages();
 
     const startTime = performance.now();
@@ -532,23 +535,38 @@ async function sendMessage() {
     let fullResponse = '';
 
     try {
-        // Smart History: Merge consecutive roles to avoid API errors (especially with Vision/Reasoning models)
+        // Visual Focus v3: Strip old images ONLY if we have new attachments (images or docs) in the current turn
+        // The 'attachments' array already includes both images and documents now.
+        const currentMessage = chatHistory[chatHistory.length - 1];
+        const hasNewAttachments = currentMessage.attachments?.length > 0;
         const massagedMessages = [{ role: 'system', content: systemPrompt }];
         
-        chatHistory.forEach(msg => {
+        chatHistory.forEach((msg, index) => {
+            const isLastMessage = (index === chatHistory.length - 1);
+            let finalContent = msg.content;
+
+            // Strip image binary data from history turns only if there are new files to focus on
+            // This prevents model distraction from historical graphics when new data arrives.
+            // NEVER strip images from the last (current) message.
+            if (Array.isArray(msg.content) && !isLastMessage && hasNewAttachments) {
+                finalContent = msg.content.map(part => 
+                    part.type === 'image_url' ? { type: 'text', text: `[Obraz: ${part.filename || 'brak nazwy'}]` } : part
+                );
+            }
+
             const last = massagedMessages[massagedMessages.length - 1];
             if (last && last.role === msg.role) {
                 // Merge content
-                if (typeof last.content === 'string' && typeof msg.content === 'string') {
-                    last.content += "\n" + msg.content;
+                if (typeof last.content === 'string' && typeof finalContent === 'string') {
+                    last.content += "\n" + finalContent;
                 } else {
                     // Handle multimodal merging (arrays)
                     const lastArr = Array.isArray(last.content) ? last.content : [{ type: 'text', text: last.content }];
-                    const msgArr = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
+                    const msgArr = Array.isArray(finalContent) ? finalContent : [{ type: 'text', text: finalContent }];
                     last.content = [...lastArr, ...msgArr];
                 }
             } else {
-                massagedMessages.push({ ...msg });
+                massagedMessages.push({ role: msg.role, content: finalContent });
             }
         });
 
@@ -744,7 +762,7 @@ function handleImageSelect(e) {
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                currentImages.push({ id, type: 'image', base64: event.target.result });
+                currentImages.push({ id, type: 'image', base64: event.target.result, filename: file.name });
                 renderPreviews();
             };
             reader.readAsDataURL(file);
