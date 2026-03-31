@@ -17,3 +17,4 @@ services:
       # Pliki montowane bezpośrednio z NASa — zmiana pliku = restart kontenera (nie rebuild)
       - /volume1/docker/wiredAI/public:/app/public
       - /volume1/docker/wiredAI/server.js:/app/server.js
+      - /volume1/docker/wiredAI/package.json:/app/package.json
