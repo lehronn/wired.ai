@@ -375,20 +375,23 @@ async function sendMessage() {
     let fullResponse = '';
 
     try {
+        const bodyData = {
+            model: selectedModel,
+            stream: true,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                ...chatHistory
+            ]
+        };
+        console.log('[API Request Content]:', bodyData);
+
         const response = await fetch('/api/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({
-                model: selectedModel,
-                stream: true,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    ...chatHistory
-                ]
-            })
+            body: JSON.stringify(bodyData)
         });
 
         if (!response.ok) throw new Error('Serwer zwrócił błąd: ' + response.status);
@@ -431,6 +434,7 @@ async function sendMessage() {
         saveHistory();
 
     } catch (err) {
+        console.error('[Vision API Error]:', err);
         uiController.updateContent(`⚠ Błąd: ${err.message}`);
     } finally {
         isStreaming = false;

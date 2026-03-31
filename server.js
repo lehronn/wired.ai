@@ -105,10 +105,12 @@ app.use('/api/v1', (req, res, next) => {
             error: (err, req, res) => {
                 console.error('[Proxy Error]:', err.message);
                 if (!res.headersSent) {
-                    res.status(502).json({ error: 'Błąd połączenia z LM Studio (backend AI).' });
+                    res.status(502).json({ error: 'Błąd połączenia z LM Studio lub przekroczenie czasu oczekiwania.' });
                 }
             }
-        }
+        },
+        timeout: 600000,      // 10 minut na odpowiedź
+        proxyTimeout: 600000 // 10 minut na połączenie
     });
     proxy(req, res, next);
 });
