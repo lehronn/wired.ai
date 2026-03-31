@@ -21,7 +21,7 @@ Wired AI: One is an ultra-modern, containerized chat interface designed specific
 ## 🛠️ Installation
 
 ### 1. Using Docker Compose (Recommended)
-The easiest way to deploy Wired AI is on your Synology NAS or any Docker-enabled host.
+The easiest way to deploy Wired AI is on your Synology NAS or any Docker-enabled host. **The container will automatically handle its own environment.**
 
 ```yaml
 version: '3'
@@ -34,19 +34,19 @@ services:
     volumes:
       - /path/to/your/wiredAI:/app
     environment:
-      - LOG_LEVEL=debug
       - PORT=8090
       - LLM_HOST=http://192.168.1.XX:1234  # URL to your LM Studio server
       - APP_PASSWORD=your_secret_pass    # Optional: set access password
       - REQUIRE_AUTH=true                 # Set to true to enable login
     working_dir: /app
-    command: node server.js
+    # Note: 'npm install' ensures all proxy dependencies are ready
+    command: sh -c "npm install && node server.js"
     restart: unless-stopped
 ```
 
-### 2. Local Manual Setup
+### 2. Local Manual Setup (Mac/PC/Linux)
 1. Clone the repository: `git clone https://github.com/lehronn/wired.ai.git`
-2. Install dependencies: `npm install`
+2. Install necessary proxy dependencies: `npm install`
 3. Configure environment variables (or use `.env`).
 4. Start the server: `npm start`
 
