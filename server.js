@@ -87,10 +87,13 @@ app.use('/api/v1', (req, res, next) => {
         pathRewrite: (path, req) => {
             const original = req.originalUrl.split('?')[0];
             // Dla modeli chcemy natywną odpowiedź LM Studio (z loaded_instances)
-            if (original === '/api/v1/models') return original;
+            if (original === '/api/v1/models') {
+                console.log(`[Proxy] NATIVE: ${original} -> ${original}`);
+                return original;
+            }
             // Dla czatu i pozostałych, używamy standardowego /v1
             const finalPath = original.replace('/api/v1', '/v1');
-            console.log(`[Proxy] ${original} -> ${finalPath}`);
+            console.log(`[Proxy] OPENAI: ${original} -> ${finalPath}`);
             return finalPath;
         },
         on: {

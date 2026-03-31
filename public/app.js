@@ -218,37 +218,47 @@ async function fetchModels() {
     try {
         const req = await fetch('/api/v1/models', { headers: { 'Authorization': `Bearer ${authToken}` } });
         const res = await req.json();
+        console.log('[DEBUG] Full Models Response:', res);
         
-        if (res.data) {
+        let models = [];
+        if (Array.isArray(res)) {
+            models = res;
+        } else if (res.data && Array.isArray(res.data)) {
+            models = res.data;
+        } else if (res.models && Array.isArray(res.models)) {
+            models = res.models;
+        }
+
+        if (models.length > 0) {
             modelSelector.innerHTML = `<option value="" id="opt-select-model">${translations[currentLang].select_model}</option>`;
             
             // Sort: loaded models first
-            const sortedModels = res.data.sort((a, b) => {
-                const aLoaded = a.loaded_instances && a.loaded_instances.length > 0;
-                const bLoaded = b.loaded_instances && b.loaded_instances.length > 0;
+            const sortedModels = models.sort((a, b) => {
+                const aLoaded = (a.loaded_instances && a.loaded_instances.length > 0) || a.state === 'loaded' || a.loaded === true;
+                const bLoaded = (b.loaded_instances && b.loaded_instances.length > 0) || b.state === 'loaded' || b.loaded === true;
                 return bLoaded - aLoaded;
             });
 
-            const loadedModels = sortedModels.filter(m => m.loaded_instances && m.loaded_instances.length > 0);
+            const loadedModels = sortedModels.filter(m => (m.loaded_instances && m.loaded_instances.length > 0) || m.state === 'loaded' || m.loaded === true);
             
             sortedModels.forEach(m => {
                 const opt = document.createElement('option');
-                const isLoaded = m.loaded_instances && m.loaded_instances.length > 0;
-                opt.value = m.id;
-                opt.textContent = isLoaded ? `● ${m.id} (Loaded)` : m.id;
+                const isLoaded = (m.loaded_instances && m.loaded_instances.length > 0) || m.state === 'loaded' || m.loaded === true;
+                const modelId = m.id || m.key;
+                const modelName = m.display_name || m.id || m.key;
+                
+                opt.value = modelId;
+                opt.textContent = isLoaded ? `● ${modelName} (Loaded)` : modelName;
                 if (isLoaded) opt.classList.add('text-success');
                 modelSelector.appendChild(opt);
             });
 
-            // Logic: 
-            // 1. If only one model is loaded -> select it
-            // 2. Else if last model is in list -> select it
             const lastModel = localStorage.getItem('wired-ai-last-model');
-            
             if (loadedModels.length === 1) {
-                modelSelector.value = loadedModels[0].id;
-                localStorage.setItem('wired-ai-last-model', loadedModels[0].id);
-            } else if (lastModel && sortedModels.some(m => m.id === lastModel)) {
+                const autoId = loadedModels[0].id || loadedModels[0].key;
+                modelSelector.value = autoId;
+                localStorage.setItem('wired-ai-last-model', autoId);
+            } else if (lastModel && sortedModels.some(m => (m.id === lastModel || m.key === lastModel))) {
                 modelSelector.value = lastModel;
             }
         }

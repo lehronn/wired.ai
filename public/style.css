@@ -63,6 +63,11 @@ body {
     border: 1px solid var(--glass-border);
 }
 
+.modal-body label {
+    color: var(--text-color) !important;
+    opacity: 0.9 !important;
+}
+
 /* Icons & Navbar Branding */
 .btn-glass-icon {
     background: rgba(255, 255, 255, 0.05) !important;
