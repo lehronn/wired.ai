@@ -483,9 +483,14 @@ async function sendMessage() {
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
-    // Integrate document text as context
-    let docContext = currentDocs.map(d => `[PLIK: ${d.filename}]\n${d.text}\n---`).join('\n');
-    let finalPrompt = docContext ? `${docContext}\n\n${message}` : message;
+    // Integrate document text as context with High Priority marking
+    let docContext = currentDocs.map(d => `### [KONTEKST DOKUMENTU: ${d.filename}]\n${d.text}\n###`).join('\n');
+    
+    // If we have a document, explicitly tell the AI to prioritize it over previous vision context
+    let finalPrompt = message;
+    if (docContext) {
+        finalPrompt = `WAŻNE: Skoncentruj się na poniższym dokumencie jako głównym źródle informacji dla tego pytania.\n\n${docContext}\n\nPYTANIE: ${message}`;
+    }
 
     // UI Meta for Files
     const messageAttachments = currentDocs.map(d => ({
