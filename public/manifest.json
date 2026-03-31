@@ -1,7 +1,7 @@
 {
-  "name": "Wired AI Chat",
+  "name": "Wired AI: One",
   "short_name": "WiredAI",
-  "description": "Premium AI reasoning and chat interface",
+  "description": "Premium AI Reasoning & Chat Interface",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1117",
