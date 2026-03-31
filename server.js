@@ -5,9 +5,11 @@ const path = require('path');
 const http = require('http');
 
 // Resilient Imports (Prevent Deathloop if modules are missing on NAS)
-let pdf, mammoth, xlsx;
+let pdf_parse, mammoth, xlsx;
 try {
-    pdf = require('pdf-parse');
+    const pdfImport = require('pdf-parse');
+    // Handle ESM or CJS exports (some environments return an object with .default)
+    pdf_parse = typeof pdfImport === 'function' ? pdfImport : (pdfImport.default || pdfImport);
     mammoth = require('mammoth');
     xlsx = require('xlsx');
 } catch (e) {
@@ -74,8 +76,8 @@ app.post('/api/extract-text', async (req, res) => {
         let extractedText = '';
 
         if (mimeType === 'application/pdf') {
-            if (!pdf) throw new Error('Biblioteka pdf-parse jest niedostępna.');
-            const data = await pdf(buffer);
+            if (!pdf_parse) throw new Error('Biblioteka pdf-parse jest niedostępna.');
+            const data = await pdf_parse(buffer);
             extractedText = data.text;
         } else if (filename.endsWith('.docx')) {
             if (!mammoth) throw new Error('Biblioteka mammoth jest niedostępna.');
