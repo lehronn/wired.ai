@@ -206,6 +206,16 @@ body {
     border-radius: 28px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
+#message-input {
+    resize: none;
+    max-height: 15rem;
+    padding: 10px;
+    line-height: 1.4;
+    font-size: 1rem;
+    outline: none !important;
+    box-shadow: none !important;
+    color: var(--text-color) !important; /* Force readable text */
+}
 #message-input::placeholder {
     color: var(--text-muted);
     opacity: 0.8 !important; /* Boost visibility */
